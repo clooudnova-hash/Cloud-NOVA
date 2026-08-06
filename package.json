@@ -1,0 +1,20 @@
+{
+  "name": "cloudnova",
+  "version": "1.0.0",
+  "description": "CLOUDNOVA Cloud Mining Platform",
+  "main": "Backend/index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node Backend/index.js",
+    "dev": "node Backend/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.7.5"
+  }
+}

@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "fojNXtIzydqSWa5R-JmhV"
+uri = "file://CloudNova_Full.zip"
+type = "unspecified"
+title = "CloudNova — Full Source Code"
+description = "Complete project with all fixes. Extract → npm install in Backend/ → node Backend/index.js"
