@@ -119,6 +119,21 @@ export default function Admin() {
     setTimeout(() => setMsg(''), 3000);
   };
 
+  const togglePause = async (user) => {
+    const res = await api('/api/admin/users/pause', { method: 'POST', body: { userId: user.id, paused: !user.paused } });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const removeUser = async (user) => {
+    if (!window.confirm(`Remove ${user.username || user.fullName}? This cannot be undone.`)) return;
+    const res = await api(`/api/admin/users/${user.id}`, { method: 'DELETE' });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setTimeout(() => setMsg(''), 3000);
+  };
+
   const tabs = ['dashboard', 'transactions', 'users', 'bonus', 'tasks'];
 
   return (
@@ -318,18 +333,29 @@ export default function Admin() {
                       <span style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', borderRadius: '6px', padding: '3px 10px', fontWeight: '600', fontSize: '11px' }}>
                         ⛏️ {u.minersCount} Miners
                       </span>
+                      <span style={{ background: u.paused ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', color: u.paused ? '#f87171' : '#34d399', borderRadius: '6px', padding: '3px 10px', fontWeight: '700', fontSize: '11px' }}>
+                        {u.paused ? 'Paused' : 'Active'}
+                      </span>
                     </div>
                   </div>
 
                   {/* Referral Info */}
                   <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+                    <span>Username: <strong style={{ color: '#fff' }}>{u.username || '—'}</strong></span>
                     <span>Referral Code: <strong style={{ color: '#a78bfa' }}>{u.myReferralCode}</strong></span>
-                    <span>Referred By: <strong style={{ color: 'rgba(255,255,255,0.5)' }}>{u.referredBy || '—'}</strong></span>
+                    <span>Referred By (upline): <strong style={{ color: '#fbbf24' }}>{u.referredByUser ? `${u.referredByUser.username} (${u.referredBy})` : 'No upline'}</strong></span>
                     <span>ID: <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)' }}>{u.id}</span></span>
                   </div>
 
                   {/* Admin Controls */}
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '14px', alignItems: 'flex-end' }}>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button onClick={() => togglePause(u)} disabled={loading} style={btn(u.paused ? '#10b981' : '#f59e0b')}>
+                        {u.paused ? 'Resume' : 'Pause'}
+                      </button>
+                      <button onClick={() => removeUser(u)} disabled={loading} style={btn('#ef4444')}>Remove</button>
+                    </div>
 
                     {/* Balance Adjustment */}
                     <div style={{ flex: '1', minWidth: '260px' }}>

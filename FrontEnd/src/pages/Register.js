@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const inputStyle = {
@@ -54,6 +54,15 @@ export default function Register() {
   const [formData, setFormData] = useState({
     fullName: '', email: '', password: '', confirmPassword: '', referralCode: '', agreeToTerms: false
   });
+  const [referralLocked, setReferralLocked] = useState(false);
+
+  useEffect(() => {
+    const referral = new URLSearchParams(window.location.search).get('ref');
+    if (referral) {
+      setFormData(prev => ({ ...prev, referralCode: referral }));
+      setReferralLocked(true);
+    }
+  }, []);
 
   const strength = getPasswordStrength(formData.password);
 
@@ -192,7 +201,7 @@ export default function Register() {
 
             <Field label={<>Referral Code <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '400', textTransform: 'none' }}>(optional)</span></>} icon="🎁">
               <input type="text" name="referralCode" value={formData.referralCode} onChange={handleChange}
-                placeholder="e.g. NOOR99" style={inputStyle}
+                placeholder="e.g. NOOR99" readOnly={referralLocked} disabled={referralLocked} style={{ ...inputStyle, opacity: referralLocked ? 0.7 : 1, cursor: referralLocked ? 'not-allowed' : 'text' }}
                 onFocus={focusOn} onBlur={focusOff} />
             </Field>
 

@@ -125,7 +125,7 @@ const Bonus = () => {
             type="text"
             placeholder="Enter voucher code (e.g. NOVA50)"
             value={code}
-            onChange={e => setCode(e.target.value.toUpperCase())}
+            onChange={e => setCode(e.target.value)}
             className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-3 text-sm text-slate-700 font-mono font-bold tracking-widest focus:outline-none focus:border-blue-500 transition uppercase"
           />
           <button type="submit" disabled={loading}
@@ -135,14 +135,13 @@ const Bonus = () => {
         </form>
 
         <div className="mt-4 p-3 rounded-xl bg-blue-50 border border-blue-100 text-[10px] text-blue-700 font-semibold">
-          💡 Active codes: <strong>NOVA50</strong> (+$50) &nbsp;|&nbsp; <strong>FREE10</strong> (+$10)
+          Promo codes are created and managed by an administrator. Enter the exact code you received.
         </div>
       </div>
 
-      {/* Task Rewards */}
       <div className="bg-white rounded-2xl p-5 mx-4 mt-4 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
         <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider mb-1">📋 Task Rewards</h3>
-        <p className="text-[11px] text-slate-400 mb-4">Complete tasks and submit for admin approval to earn rewards</p>
+        <p className="text-[11px] text-slate-400 mb-4">Complete eligible tasks to receive instant rewards</p>
 
         <div className="space-y-3">
           {tasks.map((t) => {
@@ -159,7 +158,7 @@ const Bonus = () => {
                     onClick={() => handleTaskClaim(t)}
                     disabled={taskLoading[t.id] || isLocked}
                     className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase disabled:opacity-50">
-                    {taskLoading[t.id] ? '...' : isLocked ? (status?.type === 'success' ? '✅ Done' : '⏳ Pending') : 'Claim'}
+                    {taskLoading[t.id] ? '...' : isLocked ? '✅ Done' : 'Claim'}
                   </button>
                 </div>
                 {status && (
@@ -173,7 +172,7 @@ const Bonus = () => {
         </div>
 
         <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-100 text-[10px] text-amber-700 font-semibold">
-          ℹ️ After submitting, admin will verify and approve your reward. Reward will be added to your wallet automatically upon approval.
+          ℹ️ Task rewards are automatically approved and added once per task.
         </div>
       </div>
     </div>

@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 export default function Home() {
   const [btcPrice, setBtcPrice] = useState(89878.44);
   const [dashboard, setDashboard] = useState(null);
-  const [collectToast, setCollectToast] = useState(false);
+  const [collectToast, setCollectToast] = useState('');
+  const [collecting, setCollecting] = useState(false);
 
   // Live BTC price flicker
   useEffect(() => {
@@ -12,6 +13,24 @@ export default function Home() {
     }, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  const collectIncome = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) { setCollectToast('Please login to collect mining income.'); return; }
+    setCollecting(true);
+    try {
+      const response = await fetch('/api/mining/collect', { method: 'POST', headers: { authorization: token } });
+      const data = await response.json();
+      if (response.ok) {
+        setCollectToast(data.credited > 0 ? `Mining income collected: $${Number(data.credited).toFixed(2)}` : data.message);
+        setDashboard(prev => prev ? { ...prev, balance: data.balance } : prev);
+      } else setCollectToast(data.message || 'Unable to collect mining income.');
+    } catch { setCollectToast('Network error. Please try again.'); }
+    finally {
+      setCollecting(false);
+      setTimeout(() => setCollectToast(''), 4000);
+    }
+  };
 
   // Load real user dashboard
   useEffect(() => {
@@ -70,13 +89,14 @@ export default function Home() {
 
         {collectToast && (
           <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.35)', color: '#34d399', fontSize: '13px', fontWeight: '700', padding: '10px 16px', borderRadius: '12px', textAlign: 'center', marginBottom: '8px' }}>
-            ✅ Income collected! Check your wallet balance.
+            {collectToast}
           </div>
         )}
         <button
-          onClick={() => { setCollectToast(true); setTimeout(() => setCollectToast(false), 4000); }}
+          onClick={collectIncome}
+          disabled={collecting}
           style={{ width: '100%', backgroundColor: '#2563eb', border: 'none', color: '#fff', fontSize: '15px', fontWeight: 'bold', padding: '14px', borderRadius: '30px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}>
-          Get All
+          {collecting ? 'Collecting...' : 'Collect Mining Income'}
         </button>
         <p style={{ textAlign: 'center', fontSize: '11px', color: '#94a3b8', marginTop: '10px', marginBottom: 0 }}>Please get your income every day, or it will disappear after 24 hours.</p>
       </div>

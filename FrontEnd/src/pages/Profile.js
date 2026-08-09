@@ -18,7 +18,7 @@ const Profile = () => {
       .then(r => r.json())
       .then(d => { if (d.balance !== undefined) setDashboard(d); })
       .catch(() => {});
-  }, []);
+  }, [token]);
 
   const fullName = dashboard?.fullName || storedName;
   const vipLevel = dashboard?.vipLevel || 'Bronze';
@@ -26,6 +26,7 @@ const Profile = () => {
   const referralCode = dashboard?.myReferralCode || '—';
   const minersCount = dashboard?.minersCount ?? 0;
   const hashrate = dashboard?.effectiveHashrate ?? 0;
+  const teamCounts = (dashboard?.team || []).map(level => level.length);
 
   const handleLogout = () => setShowLogoutConfirm(true);
 
@@ -132,9 +133,9 @@ const Profile = () => {
             <div className="space-y-1.5">
               <label className="text-[10px] text-slate-400 font-bold uppercase block">Full Invite URL</label>
               <div className="flex gap-2">
-                <input type="text" readOnly value={`${window.location.origin}/register?ref=${referralCode}`}
+                <input type="text" readOnly value={`${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`}
                   className="w-full bg-[#f8fafc] border rounded-xl p-2.5 text-[10px] text-slate-600 font-mono focus:outline-none font-bold" />
-                <button type="button" onClick={() => copyToClipboard(`${window.location.origin}/register?ref=${referralCode}`, 'Invite URL')}
+                <button type="button" onClick={() => copyToClipboard(`${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`, 'Invite URL')}
                   className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white text-[10px] font-black px-4 rounded-xl shadow-md uppercase whitespace-nowrap">Copy</button>
               </div>
             </div>
@@ -145,7 +146,7 @@ const Profile = () => {
                 { label: 'L3', color: 'from-teal-400 to-emerald-500', pct: '2%' }].map(l => (
                 <div key={l.label} className="bg-white border border-slate-100 rounded-2xl p-3 flex flex-col items-center text-center shadow-sm">
                   <div className={`w-10 h-10 bg-gradient-to-br ${l.color} rounded-xl flex items-center justify-center text-white font-black text-xs`}>{l.label}</div>
-                  <span className="text-base font-black text-[#1e293b] mt-3">0</span>
+                  <span className="text-base font-black text-[#1e293b] mt-3">{teamCounts[l.label === 'L1' ? 0 : l.label === 'L2' ? 1 : 2] || 0}</span>
                   <span className="text-[9px] text-slate-400 font-bold mt-0.5">Members</span>
                   <span className="text-[9px] text-amber-500 font-black mt-2.5 leading-tight text-center">{l.pct}<br/>commission</span>
                 </div>

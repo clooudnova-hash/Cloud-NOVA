@@ -28,9 +28,9 @@ export default function Reports() {
   ];
 
   const teamLevels = [
-    { label: 'Level 1 Team', members: 0, commission: '6%', color: '#3b82f6' },
-    { label: 'Level 2 Team', members: 0, commission: '4%', color: '#06b6d4' },
-    { label: 'Level 3 Team', members: 0, commission: '2%', color: '#10b981' },
+    { label: 'Level 1 Team', commission: '6%', color: '#3b82f6', members: dashboard?.team?.[0] || [] },
+    { label: 'Level 2 Team', commission: '4%', color: '#06b6d4', members: dashboard?.team?.[1] || [] },
+    { label: 'Level 3 Team', commission: '2%', color: '#10b981', members: dashboard?.team?.[2] || [] },
   ];
 
   const statusColor = { pending: '#f59e0b', completed: '#10b981', rejected: '#ef4444' };
@@ -82,7 +82,8 @@ export default function Reports() {
         <h3 style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 14px' }}>Team Network</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {teamLevels.map(l => (
-            <div key={l.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px solid #e2e8f0' }}>
+              <div key={l.label} style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px 16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '32px', height: '32px', background: l.color, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: '800' }}>
                   {l.label.split(' ')[1]}
@@ -93,9 +94,20 @@ export default function Reports() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b', margin: 0 }}>{l.members}</p>
+                <p style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b', margin: 0 }}>{l.members.length}</p>
                 <p style={{ fontSize: '10px', color: '#94a3b8', margin: '2px 0 0' }}>Members</p>
               </div>
+                </div>
+                {l.members.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '8px' }}>
+                  {l.members.map(member => (
+                    <div key={member.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: '11px' }}>
+                      <span style={{ color: '#334155', fontWeight: '800' }}>{member.username || member.fullName}</span>
+                      <span style={{ color: member.depositStatus === 'completed' ? '#059669' : member.depositStatus === 'pending' ? '#d97706' : '#94a3b8', fontWeight: '700' }}>
+                        {member.depositStatus.replace('_', ' ')} · ${Number(member.depositedAmount || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>}
             </div>
           ))}
         </div>

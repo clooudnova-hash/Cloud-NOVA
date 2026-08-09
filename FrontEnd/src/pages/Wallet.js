@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const Wallet = () => {
   const [activeTab, setActiveTab] = useState('deposit');
@@ -21,7 +21,7 @@ const Wallet = () => {
 
   const token = localStorage.getItem('token');
 
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     if (!token) return;
     // Fetch balance
     fetch('/api/user/dashboard', { headers: { authorization: token } })
@@ -33,9 +33,9 @@ const Wallet = () => {
       .then(r => r.json())
       .then(d => { if (Array.isArray(d)) setTransactions(d.slice().reverse()); })
       .catch(() => {});
-  };
+  }, [token]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const showMsg = (text, type) => {
     setMessage(text); setMsgType(type);
