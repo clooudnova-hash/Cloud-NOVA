@@ -5,7 +5,13 @@ import MachineCard from '../Components/MachineCard';
 const getTier = (price) => {
   if (price === 10) return 'Starter';
   if (price === 20) return 'Pro';
-  if (price === 50) return 'Enterprise';
+  if (price === 30) return 'Basic';
+  if (price === 50) return 'Standard';
+  if (price === 80) return 'Premium';
+  if (price === 100) return 'Advanced';
+  if (price === 150) return 'Professional';
+  if (price === 200) return 'Enterprise';
+  if (price === 500) return 'Elite';
   return null;
 };
 
@@ -24,16 +30,15 @@ const MiningPlans = () => {
   const [contactModal, setContactModal] = useState(null); // { machine }
 
   const plans = [
-    { id: 1, name: 'CloudNova HZ Mini1', dailyIncome: 0.50, termDays: 40, rebate: 0.50, totalIncome: 20.00, limit: 1, price: 10.00, country: 'Kazakhstan', category: 'plans' },
-    { id: 2, name: 'CloudNova HZ Mini2', dailyIncome: 0.67, termDays: 60, rebate: 1.00, totalIncome: 40.20, limit: 1, price: 20.00, country: 'Russia', category: 'plans' },
-    { id: 3, name: 'CloudNova Kazakhstan Elite', dailyIncome: 2.00, termDays: 90, rebate: 2.50, totalIncome: 180.00, limit: 2, price: 50.00, country: 'Kazakhstan', category: 'plans' },
-    { id: 4, name: 'CloudNova Russia Pro', dailyIncome: 4.50, termDays: 100, rebate: 5.00, totalIncome: 450.00, limit: 2, price: 100.00, country: 'Russia', category: 'plans' },
-    { id: 5, name: 'CloudNova Iceland Power', dailyIncome: 12.50, termDays: 30, rebate: 15.00, totalIncome: 375.00, limit: 1, price: 375.00, country: 'All', category: 'limited' },
-    { id: 6, name: 'CloudNova Germany Quantum', dailyIncome: 30.00, termDays: 20, rebate: 35.00, totalIncome: 600.00, limit: 1, price: 600.00, country: 'All', category: 'limited' },
-    { id: 7, name: 'CloudNova UK Node', dailyIncome: 40.00, termDays: 120, rebate: 50.00, totalIncome: 4800.00, limit: 3, price: 1000.00, country: 'UK', category: 'plans' },
-    { id: 8, name: 'CloudNova US ASIC', dailyIncome: 82.50, termDays: 150, rebate: 100.00, totalIncome: 12375.00, limit: 5, price: 5000.00, country: 'USA', category: 'plans' },
-    { id: 9, name: 'CloudNova Mega Hash', dailyIncome: 180.00, termDays: 15, rebate: 250.00, totalIncome: 2700.00, limit: 1, price: 2700.00, country: 'All', category: 'limited' },
-    { id: 10, name: 'CloudNova Global Node V10', dailyIncome: 333.33, termDays: 180, rebate: 450.00, totalIncome: 60000.00, limit: 10, price: 10000.00, country: 'Global', category: 'plans' }
+    { id: 1, name: 'CloudNova HZ Mini1', dailyIncome: 0.30, termDays: 38, rebate: 0.00, totalIncome: 11.40, limit: 1, price: 10.00, country: 'Kazakhstan', category: 'plans' },
+    { id: 2, name: 'CloudNova HZ Mini2', dailyIncome: 0.60, termDays: 35, rebate: 0.00, totalIncome: 21.00, limit: 1, price: 20.00, country: 'Russia', category: 'plans' },
+    { id: 3, name: 'CloudNova Basic', dailyIncome: 0.90, termDays: 35, rebate: 0.00, totalIncome: 31.50, limit: 1, price: 30.00, country: 'All', category: 'plans' },
+    { id: 4, name: 'CloudNova Standard', dailyIncome: 1.00, termDays: 53, rebate: 0.00, totalIncome: 53.00, limit: 2, price: 50.00, country: 'Kazakhstan', category: 'plans' },
+    { id: 5, name: 'CloudNova Premium', dailyIncome: 1.60, termDays: 53, rebate: 0.00, totalIncome: 84.80, limit: 2, price: 80.00, country: 'Russia', category: 'plans' },
+    { id: 6, name: 'CloudNova Advanced', dailyIncome: 2.00, termDays: 55, rebate: 0.00, totalIncome: 110.00, limit: 2, price: 100.00, country: 'UK', category: 'plans' },
+    { id: 7, name: 'CloudNova Professional', dailyIncome: 3.50, termDays: 48, rebate: 0.00, totalIncome: 168.00, limit: 3, price: 150.00, country: 'USA', category: 'plans' },
+    { id: 8, name: 'CloudNova Enterprise', dailyIncome: 4.50, termDays: 50, rebate: 0.00, totalIncome: 225.00, limit: 5, price: 200.00, country: 'Global', category: 'plans' },
+    { id: 9, name: 'CloudNova Elite', dailyIncome: 6.00, termDays: 88, rebate: 0.00, totalIncome: 528.00, limit: 5, price: 500.00, country: 'Global', category: 'plans' }
   ];
 
   const filteredMachines = plans.filter(machine => {
@@ -176,12 +181,8 @@ const MiningPlans = () => {
         {/* Tabs */}
         <div className="bg-white rounded-xl p-1 flex shadow-sm border border-slate-100 text-xs font-bold">
           <button type="button" onClick={() => { setActiveTab('plans'); setSelectedCountry('All'); }}
-            className={`w-1/2 text-center py-2.5 rounded-lg transition-all ${activeTab === 'plans' ? 'bg-[#1e88e5] text-white shadow-sm' : 'text-slate-500'}`}>
+            className={`w-full text-center py-2.5 rounded-lg transition-all ${activeTab === 'plans' ? 'bg-[#1e88e5] text-white shadow-sm' : 'text-slate-500'}`}>
             ✏️ Mining Plans
-          </button>
-          <button type="button" onClick={() => { setActiveTab('limited'); setSelectedCountry('All'); }}
-            className={`w-1/2 text-center py-2.5 rounded-lg transition-all ${activeTab === 'limited' ? 'bg-[#1e88e5] text-white shadow-sm' : 'text-slate-500'}`}>
-            🔥 Limited Offers
           </button>
         </div>
 

@@ -34,6 +34,8 @@ const emailOtpCache = [];
 const taskClaims = [];
 const PROMO_MAX_FAILED_ATTEMPTS = 3;
 const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
+const MIN_DEPOSIT_AMOUNT = 10;
+const MIN_WITHDRAWAL_AMOUNT = 3;
 
 const mockPasswordHash = bcrypt.hashSync('Admin@123', 10);
 users.push({ id: 'usr_mock1', username: 'noor', fullName: 'Noor Zaman', email: 'noor@cloudnova.com', password: mockPasswordHash, role: 'admin', myReferralCode: 'NOOR99', referredBy: '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
@@ -61,9 +63,15 @@ const getTeamTree = (userId) => {
 };
 
 const MINING_PLANS = {
-  Starter: { cost: 10, dailyIncome: 0.50, durationDays: 40, hashrate: 5, limit: 1 },
-  Pro: { cost: 20, dailyIncome: 0.67, durationDays: 60, hashrate: 15, limit: 1 },
-  Enterprise: { cost: 50, dailyIncome: 2.00, durationDays: 90, hashrate: 50, limit: 2 }
+  Starter: { cost: 10, dailyIncome: 0.30, durationDays: 38, hashrate: 5, limit: 1 },
+  Pro: { cost: 20, dailyIncome: 0.60, durationDays: 35, hashrate: 10, limit: 1 },
+  Basic: { cost: 30, dailyIncome: 0.90, durationDays: 35, hashrate: 15, limit: 1 },
+  Standard: { cost: 50, dailyIncome: 1.00, durationDays: 53, hashrate: 25, limit: 2 },
+  Premium: { cost: 80, dailyIncome: 1.60, durationDays: 53, hashrate: 40, limit: 2 },
+  Advanced: { cost: 100, dailyIncome: 2.00, durationDays: 55, hashrate: 50, limit: 2 },
+  Professional: { cost: 150, dailyIncome: 3.50, durationDays: 48, hashrate: 75, limit: 3 },
+  Enterprise: { cost: 200, dailyIncome: 4.50, durationDays: 50, hashrate: 100, limit: 5 },
+  Elite: { cost: 500, dailyIncome: 6.00, durationDays: 88, hashrate: 250, limit: 5 }
 };
 
 const getMiningSummary = (userId) => miningContracts
@@ -221,7 +229,8 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
   try {
     const { txid, network, amount } = req.body;
     const depositAmount = parseFloat(amount);
-    if (!txid || !network || !Number.isFinite(depositAmount) || depositAmount <= 0) return res.status(400).json({ message: 'Valid deposit amount, network, and transaction ID are required.' });
+    if (network !== 'EasyPaisa') return res.status(400).json({ message: 'Deposits are available only through EasyPaisa.' });
+    if (!txid || !network || !Number.isFinite(depositAmount) || depositAmount < MIN_DEPOSIT_AMOUNT) return res.status(400).json({ message: `Minimum deposit amount is $${MIN_DEPOSIT_AMOUNT.toFixed(2)}.` });
     if (transactions.find(t => t.txid === txid)) return res.status(400).json({ message: 'Transaction hash already exists!' });
 
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'deposit', amount: depositAmount, network, txid, status: 'pending', date: new Date().toISOString() });
@@ -235,7 +244,7 @@ app.post('/api/wallet/withdraw', verifyToken, (req, res) => {
     const wallet = wallets.find(w => w.userId === req.user.id);
     const amt = parseFloat(amount);
     const reserved = transactions.filter(t => t.userId === req.user.id && t.type === 'withdrawal' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
-    if (!address || !network || !Number.isFinite(amt) || amt <= 0) return res.status(400).json({ message: 'Valid withdrawal details are required.' });
+    if (!address || !network || !Number.isFinite(amt) || amt < MIN_WITHDRAWAL_AMOUNT) return res.status(400).json({ message: `Minimum withdrawal amount is $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)}.` });
     if (wallet.balance - reserved < amt) return res.status(400).json({ message: 'Insufficient available balance' });
 
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'withdrawal', amount: amt, network, txid: address, status: 'pending', date: new Date().toISOString() });
@@ -478,7 +487,28 @@ app.get('/api/tasks/my-claims', verifyToken, (req, res) => {
 });
 
 // Allowed task IDs and their rewards — single source of truth (string keys to avoid type ambiguity)
-const TASK_REWARDS = { '1': 0.50, '2': 1.00, '3': 2.50 };
+const TASK_REWARDS = { '1': 0.10, '2': 0.20, '3': 1.00 };
+
+const getTaskEligibility = (user, taskId) => {
+  if (taskId === '1') {
+    return user.fullName && user.fullName.trim() && user.email && user.email.trim()
+      ? { eligible: true }
+      : { eligible: false, message: 'Complete your profile before claiming this reward.' };
+  }
+  if (taskId === '2') {
+    const hasCompletedDeposit = transactions.some(tx => tx.userId === user.id && tx.type === 'deposit' && tx.status === 'completed');
+    return hasCompletedDeposit
+      ? { eligible: true }
+      : { eligible: false, message: 'Make and complete your first deposit before claiming this reward.' };
+  }
+  if (taskId === '3') {
+    const directReferrals = users.filter(member => member.referredBy === user.id).length;
+    return directReferrals >= 5
+      ? { eligible: true }
+      : { eligible: false, message: `Invite 5 friends first. You currently have ${directReferrals} direct referral(s).` };
+  }
+  return { eligible: false, message: 'Invalid task ID.' };
+};
 
 // User: submit a task reward claim
 app.post('/api/tasks/claim', verifyToken, (req, res) => {
@@ -491,7 +521,11 @@ app.post('/api/tasks/claim', verifyToken, (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found.' });
     const approved = taskClaims.find(c => c.userId === req.user.id && c.taskId === tid && c.status === 'approved');
     if (approved) return res.status(400).json({ message: 'You have already received the reward for this task.' });
+    const eligibility = getTaskEligibility(user, tid);
+    if (!eligibility.eligible) return res.status(400).json({ message: eligibility.message });
     const reward = TASK_REWARDS[tid];
+    const wallet = wallets.find(w => w.userId === user.id);
+    if (!wallet) return res.status(404).json({ message: 'Wallet not found.' });
     const claim = {
       id: 'tc_' + Math.random().toString(36).substring(2, 9),
       userId: req.user.id,
@@ -504,11 +538,9 @@ app.post('/api/tasks/claim', verifyToken, (req, res) => {
       date: new Date().toISOString()
     };
     taskClaims.push(claim);
-    const wallet = wallets.find(w => w.userId === user.id);
-    if (!wallet) return res.status(404).json({ message: 'Wallet not found.' });
     wallet.balance = Number((wallet.balance + reward).toFixed(4));
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: user.id, type: 'Task Reward', amount: reward, network: 'Automatic Task Claim', txid: claim.id, status: 'completed', date: claim.date, taskId: tid });
-    return res.status(201).json({ success: true, reward, message: `Task approved automatically. $${reward.toFixed(2)} added to your wallet.` });
+    return res.status(201).json({ success: true, reward, message: `Task completed and approved. $${reward.toFixed(2)} added to your wallet.` });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 

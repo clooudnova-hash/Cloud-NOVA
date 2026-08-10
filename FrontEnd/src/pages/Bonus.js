@@ -9,9 +9,9 @@ const Bonus = () => {
   const [taskLoading, setTaskLoading] = useState({});
 
   const tasks = [
-    { id: 1, task: 'Complete your profile', reward: '$0.50' },
-    { id: 2, task: 'Make first deposit', reward: '$1.00' },
-    { id: 3, task: 'Invite 5 friends', reward: '$2.50' },
+    { id: 1, task: 'Complete your profile', reward: '$0.10' },
+    { id: 2, task: 'Make first deposit', reward: '$0.20' },
+    { id: 3, task: 'Invite 5 friends', reward: '$1.00' },
   ];
 
   // Load server-side claim statuses on mount so state persists across reloads
@@ -172,7 +172,7 @@ const Bonus = () => {
         </div>
 
         <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-100 text-[10px] text-amber-700 font-semibold">
-          ℹ️ Task rewards are automatically approved and added once per task.
+          ℹ️ Rewards are added only after the task is actually completed. Each task can be claimed once.
         </div>
       </div>
     </div>

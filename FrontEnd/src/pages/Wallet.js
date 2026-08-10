@@ -46,6 +46,7 @@ const Wallet = () => {
     e.preventDefault();
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (!amount) { showMsg('Please enter amount.', 'error'); return; }
+    if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 10) { showMsg('Minimum deposit amount is $10.00.', 'error'); return; }
     if (!txid) { showMsg('Please enter transaction ID / hash.', 'error'); return; }
     setLoading(true);
     try {
@@ -65,6 +66,7 @@ const Wallet = () => {
     e.preventDefault();
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (!amount || !accountNumber || !accountName) { showMsg('Please fill all fields.', 'error'); return; }
+    if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 3) { showMsg('Minimum withdrawal amount is $3.00.', 'error'); return; }
     setLoading(true);
     try {
       const res = await fetch('/api/wallet/withdraw', {
@@ -87,7 +89,7 @@ const Wallet = () => {
         <p className="text-[10px] text-blue-200 font-bold uppercase tracking-wider">Total Assets</p>
         <h2 className="text-3xl font-black tracking-tight text-white">${balance ?? '0.00'}</h2>
         <div className="grid grid-cols-2 gap-3 mt-4 text-xs font-bold">
-          <button type="button" onClick={() => setActiveTab('deposit')}
+          <button type="button" onClick={() => { setActiveTab('deposit'); setPaymentMethod('EasyPaisa'); }}
             className={`py-2.5 rounded-xl border font-black uppercase transition-all duration-200 ${activeTab === 'deposit' ? 'bg-white text-[#1d4ed8] border-white shadow-[0_0_15px_rgba(255,255,255,0.6)]' : 'bg-transparent text-white border-white/30'}`}>
             📥 Deposit Funds
           </button>
@@ -106,7 +108,7 @@ const Wallet = () => {
 
       {/* Alert message */}
       {message && (
-        <div className={`mx-4 mt-3 p-3 rounded-xl text-xs font-bold ${msgType === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+        <div className={`fixed top-20 right-4 left-4 z-50 p-3 rounded-xl text-xs font-bold shadow-lg ${msgType === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
           {message}
         </div>
       )}
@@ -123,8 +125,10 @@ const Wallet = () => {
           <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
             className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-500 transition">
             <option value="EasyPaisa">EasyPaisa</option>
-            <option value="JazzCash">JazzCash</option>
-            <option value="BankTransfer">Bank Transfer</option>
+            {activeTab === 'withdraw' && <>
+              <option value="JazzCash">JazzCash</option>
+              <option value="BankTransfer">Bank Transfer</option>
+            </>}
           </select>
         </div>
 
@@ -143,8 +147,8 @@ const Wallet = () => {
         {activeTab === 'deposit' && (
           <form onSubmit={handleDeposit} className="space-y-4">
             <div>
-              <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($)</label>
-              <input type="number" placeholder="Enter amount" value={amount} onChange={e => setAmount(e.target.value)}
+              <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($) · Minimum $10.00</label>
+              <input type="number" min="10" step="0.01" placeholder="Minimum $10.00" value={amount} onChange={e => setAmount(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500 transition" />
             </div>
             <div>
@@ -163,8 +167,8 @@ const Wallet = () => {
         {activeTab === 'withdraw' && (
           <form onSubmit={handleWithdraw} className="space-y-4">
             <div>
-              <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($)</label>
-              <input type="number" placeholder="Enter amount" value={amount} onChange={e => setAmount(e.target.value)}
+              <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($) · Minimum $3.00</label>
+              <input type="number" min="3" step="0.01" placeholder="Minimum $3.00" value={amount} onChange={e => setAmount(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none transition" />
             </div>
             <div>

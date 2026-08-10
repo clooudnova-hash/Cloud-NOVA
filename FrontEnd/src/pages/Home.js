@@ -48,8 +48,8 @@ export default function Home() {
   const vipLevel = dashboard?.vipLevel || 'Bronze';
 
   const miningPools = [
-    { id: 1, name: 'CLOUDNOVA HZ Miner1', daily: '$0.50', total: '$10.00', duration: '40 Days', img: '⚡' },
-    { id: 2, name: 'CLOUDNOVA HZ Miner2', daily: '$0.67', total: '$20.00', duration: '60 Days', img: '💎' }
+    { id: 1, name: 'CLOUDNOVA HZ Miner1', daily: '$0.30', total: '$11.40', duration: '38 Days', img: '⚡' },
+    { id: 2, name: 'CLOUDNOVA HZ Miner2', daily: '$0.60', total: '$21.00', duration: '35 Days', img: '💎' }
   ];
 
   return (

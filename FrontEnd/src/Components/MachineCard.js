@@ -2,12 +2,18 @@ import React from 'react';
 
 const MachineCard = ({ data, onRent, renting }) => {
   const { id, name, dailyIncome, termDays, rebate, totalIncome, limit, price, image } = data || {};
+  const isPremium = price >= 200;
 
   // Cycle through miner images if no specific image provided
   const imgSrc = image || `/miner${((id - 1) % 3) + 1}.jpg`;
 
   return (
-    <div className="bg-white rounded-2xl p-4 flex justify-between shadow-sm border border-slate-100 hover:shadow-md transition duration-200">
+    <div className={`relative rounded-2xl p-4 flex justify-between shadow-sm transition duration-200 ${isPremium ? 'bg-gradient-to-r from-[#fffaf0] to-[#fff1c7] border-2 border-amber-400 shadow-[0_6px_20px_rgba(245,158,11,0.2)] hover:shadow-[0_8px_26px_rgba(245,158,11,0.3)]' : 'bg-white border border-slate-100 hover:shadow-md'}`}>
+      {isPremium && (
+        <div className="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black tracking-[0.18em] px-3 py-1 rounded-full shadow-md border-2 border-white">
+          PREMIUM
+        </div>
+      )}
 
       {/* Left: Machine Image */}
       <div className="flex gap-4 items-start w-2/3">
@@ -37,7 +43,7 @@ const MachineCard = ({ data, onRent, renting }) => {
             <p className="text-[#388e3c] font-semibold">Rebate: ${rebate ? rebate.toFixed(2) : '0.00'}</p>
           </div>
           <div className="pt-2">
-            <span className="text-[13px] font-black text-slate-800">${price ? price.toFixed(2) : '0.00'}</span>
+            <span className={`text-[13px] font-black ${isPremium ? 'text-amber-700' : 'text-slate-800'}`}>${price ? price.toFixed(2) : '0.00'}</span>
           </div>
         </div>
       </div>
@@ -55,7 +61,7 @@ const MachineCard = ({ data, onRent, renting }) => {
           type="button"
           onClick={() => onRent && onRent(data)}
           disabled={renting}
-          className="bg-[#1e88e5] text-white text-[10px] font-black px-5 py-1.5 rounded-lg shadow-sm hover:bg-[#1565c0] transition active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`${isPremium ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#1e88e5] hover:bg-[#1565c0]'} text-white text-[10px] font-black px-5 py-1.5 rounded-lg shadow-sm transition active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           {renting ? '...' : 'RENT'}
         </button>

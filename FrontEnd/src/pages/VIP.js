@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const MyMining = () => {
   // Page Sub-Tab state ('mining' ya 'vip')
   const [currentSubTab, setCurrentSubTab] = useState('mining');
+  const [activeContracts, setActiveContracts] = useState([]);
 
   // Sabsay bada fix: GTC-CLOUD mita kar CN-CLOUD (CloudNova) kar diya hai
-  const [runningMachines] = useState([
-    { id: "M-9941", name: "CN-Cloud HZ Mini1", leasePrice: 10.00, dailyYield: 0.50, hoursLeft: 960, status: "Active Running", capacity: "120 TH/s" },
-    { id: "M-8832", name: "CN-Cloud Kazakhstan Elite", leasePrice: 50.00, dailyYield: 2.00, hoursLeft: 2160, status: "Active Running", capacity: "450 TH/s" }
+  const [runningMachines, setRunningMachines] = useState([
+    { id: "P-004", name: "CloudNova Standard", leasePrice: 50.00, dailyYield: 1.00, hoursLeft: 1272, status: "Not Active", capacity: "250 TH/s" },
+    { id: "P-005", name: "CloudNova Premium", leasePrice: 80.00, dailyYield: 1.60, hoursLeft: 1272, status: "Not Active", capacity: "320 TH/s" }
   ]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch('/api/mining/contracts', { headers: { authorization: token } })
+      .then(response => response.ok ? response.json() : [])
+      .then(contracts => setActiveContracts(Array.isArray(contracts) ? contracts.filter(contract => contract.status === 'active') : []))
+      .catch(() => setActiveContracts([]));
+  }, []);
+
+  useEffect(() => {
+    setRunningMachines(machines => machines.map(machine => {
+      const contract = activeContracts.find(item => Number(item.cost) === machine.leasePrice);
+      return contract
+        ? { ...machine, status: 'Active', hoursLeft: Math.max(0, Math.ceil((new Date(contract.endDate) - new Date()) / 3600000)) }
+        : { ...machine, status: 'Not Active' };
+    }));
+  }, [activeContracts]);
 
   // VIP Levels Configuration Data
   const vipLevels = [
@@ -17,8 +36,9 @@ const MyMining = () => {
     { level: "LV3 Member", condition: "Accumulated Deposit: $1,000.00", dailyLimit: "$5,000.00", rebate: "12.0%", status: "Locked", color: "border-l-purple-500" }
   ];
 
-  const totalNodes = runningMachines.length;
-  const expectedToday = runningMachines.reduce((sum, item) => sum + item.dailyYield, 0);
+  const activeMachines = runningMachines.filter(machine => machine.status === 'Active');
+  const totalNodes = activeMachines.length;
+  const expectedToday = activeMachines.reduce((sum, item) => sum + item.dailyYield, 0);
 
   return (
     <div className="min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
@@ -31,11 +51,11 @@ const MyMining = () => {
         {/* Real-time Summary Cards Row */}
         <div className="grid grid-cols-2 gap-3 mt-4 text-center text-xs font-bold">
           <div className="bg-white/10 border border-white/20 p-2.5 rounded-xl">
-            <p className="text-[9px] text-blue-100 opacity-80">DEPLOYED RIGS</p>
-            <p className="text-sm font-black mt-0.5 text-white">{totalNodes} Nodes</p>
+            <p className="text-[9px] text-blue-100 opacity-80">ACTIVE PLANS</p>
+            <p className="text-sm font-black mt-0.5 text-white">{totalNodes} Plans</p>
           </div>
           <div className="bg-white/10 border border-white/20 p-2.5 rounded-xl">
-            <p className="text-[9px] text-blue-100 opacity-80">DAILY REVENUE</p>
+            <p className="text-[9px] text-blue-100 opacity-80">PROJECTED DAILY RETURN</p>
             <p className="text-sm font-black mt-0.5 text-yellow-300">+{expectedToday.toFixed(2)} USDT</p>
           </div>
         </div>
@@ -52,7 +72,7 @@ const MyMining = () => {
               : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
           }`}
         >
-          ⚡ Live My Mining Nodes
+          ⚡ Premium Mining
         </button>
         <button 
           type="button" 
@@ -69,7 +89,7 @@ const MyMining = () => {
 
       {/* Operational Info Ribbon */}
       <div className="mx-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[10px] text-amber-700 font-semibold shadow-sm">
-        <p>📊 <strong>Status Update:</strong> Cloud mining node telemetry syncs automatically every 24 hours.</p>
+        <p>📊 <strong>Plan Preview:</strong> These plans are available for rent and are not active until you rent one.</p>
       </div>
 
       {/* Content Render Panel */}
@@ -78,7 +98,7 @@ const MyMining = () => {
         {/* TAB 1: Rented Live Cloud Mining Rigs */}
         {currentSubTab === 'mining' && (
           <>
-            <h3 className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider px-1">Hardware Cluster Status</h3>
+            <h3 className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider px-1">Premium Mining Plans</h3>
             {runningMachines.length === 0 ? (
               <div className="text-center bg-white rounded-2xl p-8 text-xs text-slate-400 border border-slate-100 shadow-sm">No machines deployed.</div>
             ) : (
@@ -87,10 +107,10 @@ const MyMining = () => {
                   <div className="flex justify-between items-center">
                     <div>
                       <h4 className="text-xs font-black text-slate-800 tracking-tight uppercase">{node.name}</h4>
-                      <p className="text-[9px] text-slate-400 font-semibold font-mono mt-0.5">UID: {node.id}</p>
+                        <p className="text-[9px] text-slate-400 font-semibold font-mono mt-0.5">Plan ID: {node.id}</p>
                     </div>
-                    <span className="bg-emerald-100 text-emerald-700 text-[8px] font-black px-2 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wider animate-pulse">
-                      🟢 {node.status}
+                    <span className={`${node.status === 'Active' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'} text-[8px] font-black px-2 py-0.5 rounded-full border uppercase tracking-wider`}>
+                      ◼ {node.status}
                     </span>
                   </div>
 
@@ -111,7 +131,7 @@ const MyMining = () => {
 
                   <div className="text-[10px] text-slate-400 font-semibold px-0.5 flex justify-between">
                     <span>Computing Output Power: <strong className="text-slate-700 font-black">{node.capacity}</strong></span>
-                    <span className="text-[9px] text-blue-500 font-bold">🔒 Secure Contract</span>
+                    <span className="text-[9px] text-blue-500 font-bold">ℹ Plan Details</span>
                   </div>
                 </div>
               ))
