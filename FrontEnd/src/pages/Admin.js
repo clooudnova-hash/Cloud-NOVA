@@ -24,8 +24,6 @@ const btn = (color = '#00b4ff') => ({
 
 const statusColor = { pending: '#f59e0b', completed: '#10b981', rejected: '#ef4444' };
 
-const VIP_LEVELS = ['Bronze', 'Silver', 'Gold', 'Diamond', 'LV1', 'LV2', 'LV3'];
-
 export default function Admin() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('dashboard');
@@ -110,13 +108,6 @@ export default function Admin() {
     await loadAll();
     setLoading(false);
     setTimeout(() => setMsg(''), 4000);
-  };
-
-  const setVip = async (userId, vipLevel) => {
-    const res = await api('/api/admin/users/set-vip', { method: 'POST', body: { userId, vipLevel } });
-    setMsg(res.message || res.error);
-    await loadAll();
-    setTimeout(() => setMsg(''), 3000);
   };
 
   const togglePause = async (user) => {
@@ -384,21 +375,6 @@ export default function Admin() {
                       </div>
                     </div>
 
-                    {/* VIP Level */}
-                    <div>
-                      <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase' }}>
-                        👑 Change VIP Level
-                      </label>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <select
-                          defaultValue={u.vipLevel}
-                          onChange={e => setVip(u.id, e.target.value)}
-                          style={{ background: '#1a1f35', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', outline: 'none', cursor: 'pointer' }}
-                        >
-                          {VIP_LEVELS.map(v => <option key={v} value={v}>{v}</option>)}
-                        </select>
-                      </div>
-                    </div>
                   </div>
 
                 </div>

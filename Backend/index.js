@@ -36,6 +36,11 @@ const PROMO_MAX_FAILED_ATTEMPTS = 3;
 const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
 const MIN_DEPOSIT_AMOUNT = 10;
 const MIN_WITHDRAWAL_AMOUNT = 3;
+const VIP_THRESHOLDS = [
+  { level: 'LV3', minimumDeposit: 1000 },
+  { level: 'LV2', minimumDeposit: 100 },
+  { level: 'LV1', minimumDeposit: 10 }
+];
 
 const mockPasswordHash = bcrypt.hashSync('Admin@123', 10);
 users.push({ id: 'usr_mock1', username: 'noor', fullName: 'Noor Zaman', email: 'noor@cloudnova.com', password: mockPasswordHash, role: 'admin', myReferralCode: 'NOOR99', referredBy: '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
@@ -87,6 +92,15 @@ const syncMiningWallet = (userId) => {
   const activeContracts = miningContracts.filter(contract => contract.userId === userId && new Date(contract.endDate) > new Date());
   wallet.minersCount = activeContracts.length;
   wallet.effectiveHashrate = Number((wallet.baseHashrate + activeContracts.reduce((sum, contract) => sum + contract.hashrate, 0)).toFixed(4));
+};
+
+const syncVipLevel = (user) => {
+  const completedDeposits = transactions
+    .filter(transaction => transaction.userId === user.id && transaction.type === 'deposit' && transaction.status === 'completed')
+    .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+  const matchedLevel = VIP_THRESHOLDS.find(threshold => completedDeposits >= threshold.minimumDeposit);
+  user.vipLevel = matchedLevel ? matchedLevel.level : 'Bronze';
+  return { vipLevel: user.vipLevel, accumulatedDeposit: Number(completedDeposits.toFixed(2)) };
 };
 
 const creditReferralRewards = (deposit) => {
@@ -181,9 +195,10 @@ app.get('/api/user/dashboard', verifyToken, (req, res) => {
     const wallet = wallets.find(w => w.userId === req.user.id);
     if (!user || !wallet) return res.status(404).json({ message: 'User record files missing!' });
     syncMiningWallet(user.id);
+    const vip = syncVipLevel(user);
 
     return res.status(200).json({
-      fullName: user.fullName, vipLevel: user.vipLevel, myReferralCode: user.myReferralCode,
+      fullName: user.fullName, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: user.myReferralCode,
       username: user.username, referredBy: user.referredBy, paused: user.paused,
       balance: wallet.balance, baseHashrate: wallet.baseHashrate, effectiveHashrate: wallet.effectiveHashrate, minersCount: wallet.minersCount,
       team: getTeamTree(user.id), miningContracts: getMiningSummary(user.id)
@@ -354,6 +369,8 @@ app.post('/api/admin/transactions/action', verifyToken, (req, res) => {
       if (tx.type === 'deposit') {
         const w = wallets.find(wall => wall.userId === tx.userId);
         if (w) w.balance += tx.amount;
+        const depositedUser = users.find(user => user.id === tx.userId);
+        if (depositedUser) syncVipLevel(depositedUser);
         creditReferralRewards(tx);
       }
     } else if (action === 'reject') {
@@ -379,9 +396,10 @@ app.post('/api/admin/transactions/action', verifyToken, (req, res) => {
 app.get('/api/admin/users', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const result = users.map(u => {
+    const vip = syncVipLevel(u);
     const w = wallets.find(wl => wl.userId === u.id) || {};
     const upline = users.find(user => user.id === u.referredBy);
-    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: u.vipLevel, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0 };
+    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0 };
   });
   return res.status(200).json(result);
 });
@@ -431,13 +449,12 @@ app.post('/api/admin/users/adjust-balance', verifyToken, (req, res) => {
 app.post('/api/admin/users/set-vip', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
-    const { userId, vipLevel } = req.body;
-    const allowed = ['Bronze', 'Silver', 'Gold', 'Diamond', 'LV1', 'LV2', 'LV3'];
-    if (!userId || !allowed.includes(vipLevel)) return res.status(400).json({ message: 'Invalid userId or vipLevel' });
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: 'userId is required' });
     const user = users.find(u => u.id === userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    user.vipLevel = vipLevel;
-    return res.status(200).json({ success: true, message: `VIP level updated to ${vipLevel}` });
+    const vip = syncVipLevel(user);
+    return res.status(200).json({ success: true, message: `VIP level is deposit-based: ${vip.vipLevel}`, ...vip });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 

@@ -4,6 +4,7 @@ const MyMining = () => {
   // Page Sub-Tab state ('mining' ya 'vip')
   const [currentSubTab, setCurrentSubTab] = useState('mining');
   const [activeContracts, setActiveContracts] = useState([]);
+  const [dashboard, setDashboard] = useState(null);
 
   // Sabsay bada fix: GTC-CLOUD mita kar CN-CLOUD (CloudNova) kar diya hai
   const [runningMachines, setRunningMachines] = useState([
@@ -14,6 +15,10 @@ const MyMining = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
+    fetch('/api/user/dashboard', { headers: { authorization: token } })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => setDashboard(data))
+      .catch(() => setDashboard(null));
     fetch('/api/mining/contracts', { headers: { authorization: token } })
       .then(response => response.ok ? response.json() : [])
       .then(contracts => setActiveContracts(Array.isArray(contracts) ? contracts.filter(contract => contract.status === 'active') : []))
@@ -29,11 +34,12 @@ const MyMining = () => {
     }));
   }, [activeContracts]);
 
-  // VIP Levels Configuration Data
+  const accumulatedDeposit = Number(dashboard?.accumulatedDeposit || 0);
+
   const vipLevels = [
-    { level: "LV1 Member", condition: "Accumulated Deposit: $10.00", dailyLimit: "$50.00", rebate: "5.0%", status: "Active Now", color: "border-l-blue-500" },
-    { level: "LV2 Member", condition: "Accumulated Deposit: $100.00", dailyLimit: "$500.00", rebate: "8.0%", status: "Locked", color: "border-l-amber-500" },
-    { level: "LV3 Member", condition: "Accumulated Deposit: $1,000.00", dailyLimit: "$5,000.00", rebate: "12.0%", status: "Locked", color: "border-l-purple-500" }
+    { level: "LV1 Member", threshold: 10, condition: "Accumulated Deposit: $10.00", dailyLimit: "$50.00", rebate: "5.0%", color: "border-l-blue-500" },
+    { level: "LV2 Member", threshold: 100, condition: "Accumulated Deposit: $100.00", dailyLimit: "$500.00", rebate: "8.0%", color: "border-l-amber-500" },
+    { level: "LV3 Member", threshold: 1000, condition: "Accumulated Deposit: $1,000.00", dailyLimit: "$5,000.00", rebate: "12.0%", color: "border-l-purple-500" }
   ];
 
   const activeMachines = runningMachines.filter(machine => machine.status === 'Active');
@@ -143,7 +149,9 @@ const MyMining = () => {
         {currentSubTab === 'vip' && (
           <>
             <h3 className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider px-1">VIP Ranking Thresholds</h3>
-            {vipLevels.map((vip, idx) => (
+            {vipLevels.map((vip, idx) => {
+              const unlocked = accumulatedDeposit >= vip.threshold;
+              return (
               <div key={idx} className={`bg-white rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-100 border-l-4 ${vip.color} flex justify-between items-center text-xs`}>
                 <div className="space-y-1">
                   <h4 className="font-black tracking-tight text-sm flex items-center gap-1 text-slate-800">
@@ -157,14 +165,15 @@ const MyMining = () => {
                 </div>
                 
                 <span className={`text-[8px] font-black px-2.5 py-1 rounded-lg border tracking-wide uppercase ${
-                  vip.status === 'Active Now' 
+                  unlocked
                     ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
                     : 'bg-[#f8fafc] text-slate-400 border-slate-200'
                 }`}>
-                  {vip.status}
+                  {unlocked ? 'Unlocked' : 'Locked'}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </>
         )}
 
