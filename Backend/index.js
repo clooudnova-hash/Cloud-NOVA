@@ -68,15 +68,15 @@ const getTeamTree = (userId) => {
 };
 
 const MINING_PLANS = {
-  Starter: { cost: 10, dailyIncome: 0.30, durationDays: 38, hashrate: 5, limit: 1 },
-  Pro: { cost: 20, dailyIncome: 0.60, durationDays: 35, hashrate: 10, limit: 1 },
-  Basic: { cost: 30, dailyIncome: 0.90, durationDays: 35, hashrate: 15, limit: 1 },
-  Standard: { cost: 50, dailyIncome: 1.00, durationDays: 53, hashrate: 25, limit: 2 },
-  Premium: { cost: 80, dailyIncome: 1.60, durationDays: 53, hashrate: 40, limit: 2 },
-  Advanced: { cost: 100, dailyIncome: 2.00, durationDays: 55, hashrate: 50, limit: 2 },
-  Professional: { cost: 150, dailyIncome: 3.50, durationDays: 48, hashrate: 75, limit: 3 },
-  Enterprise: { cost: 200, dailyIncome: 4.50, durationDays: 50, hashrate: 100, limit: 5 },
-  Elite: { cost: 500, dailyIncome: 6.00, durationDays: 88, hashrate: 250, limit: 5 }
+  Starter: { cost: 10, dailyIncome: 0.53, durationDays: 38, hashrate: 5, limit: 1 },
+  Pro: { cost: 20, dailyIncome: 1.00, durationDays: 38, hashrate: 10, limit: 1 },
+  Basic: { cost: 30, dailyIncome: 1.37, durationDays: 38, hashrate: 15, limit: 1 },
+  Standard: { cost: 50, dailyIncome: 1.40, durationDays: 52, hashrate: 25, limit: 2 },
+  Premium: { cost: 80, dailyIncome: 2.83, durationDays: 53, hashrate: 40, limit: 2 },
+  Advanced: { cost: 100, dailyIncome: 2.73, durationDays: 55, hashrate: 50, limit: 2 },
+  Professional: { cost: 150, dailyIncome: 4.38, durationDays: 48, hashrate: 75, limit: 3 },
+  Enterprise: { cost: 200, dailyIncome: 6.00, durationDays: 50, hashrate: 100, limit: 5 },
+  Elite: { cost: 500, dailyIncome: 9.09, durationDays: 88, hashrate: 250, limit: 5 }
 };
 
 const getMiningSummary = (userId) => miningContracts

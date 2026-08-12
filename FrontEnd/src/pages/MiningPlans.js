@@ -30,15 +30,15 @@ const MiningPlans = () => {
   const [contactModal, setContactModal] = useState(null); // { machine }
 
   const plans = [
-    { id: 1, name: 'CloudNova HZ Mini1', dailyIncome: 0.30, termDays: 38, rebate: 0.00, totalIncome: 11.40, limit: 1, price: 10.00, country: 'Kazakhstan', category: 'plans' },
-    { id: 2, name: 'CloudNova HZ Mini2', dailyIncome: 0.60, termDays: 35, rebate: 0.00, totalIncome: 21.00, limit: 1, price: 20.00, country: 'Russia', category: 'plans' },
-    { id: 3, name: 'CloudNova Basic', dailyIncome: 0.90, termDays: 35, rebate: 0.00, totalIncome: 31.50, limit: 1, price: 30.00, country: 'All', category: 'plans' },
-    { id: 4, name: 'CloudNova Standard', dailyIncome: 1.00, termDays: 53, rebate: 0.00, totalIncome: 53.00, limit: 2, price: 50.00, country: 'Kazakhstan', category: 'plans' },
-    { id: 5, name: 'CloudNova Premium', dailyIncome: 1.60, termDays: 53, rebate: 0.00, totalIncome: 84.80, limit: 2, price: 80.00, country: 'Russia', category: 'plans' },
-    { id: 6, name: 'CloudNova Advanced', dailyIncome: 2.00, termDays: 55, rebate: 0.00, totalIncome: 110.00, limit: 2, price: 100.00, country: 'UK', category: 'plans' },
-    { id: 7, name: 'CloudNova Professional', dailyIncome: 3.50, termDays: 48, rebate: 0.00, totalIncome: 168.00, limit: 3, price: 150.00, country: 'USA', category: 'plans' },
-    { id: 8, name: 'CloudNova Enterprise', dailyIncome: 4.50, termDays: 50, rebate: 0.00, totalIncome: 225.00, limit: 5, price: 200.00, country: 'Global', category: 'plans' },
-    { id: 9, name: 'CloudNova Elite', dailyIncome: 6.00, termDays: 88, rebate: 0.00, totalIncome: 528.00, limit: 5, price: 500.00, country: 'Global', category: 'plans' }
+    { id: 1, name: 'CloudNova HZ Mini1', dailyIncome: 0.53, termDays: 38, rebate: 0.00, totalIncome: 20.00, limit: 1, price: 10.00, country: 'Kazakhstan', category: 'plans' },
+    { id: 2, name: 'CloudNova HZ Mini2', dailyIncome: 1.00, termDays: 38, rebate: 0.00, totalIncome: 38.00, limit: 1, price: 20.00, country: 'Russia', category: 'plans' },
+    { id: 3, name: 'CloudNova Basic', dailyIncome: 1.37, termDays: 38, rebate: 0.00, totalIncome: 52.00, limit: 1, price: 30.00, country: 'All', category: 'plans' },
+    { id: 4, name: 'CloudNova Standard', dailyIncome: 1.40, termDays: 52, rebate: 0.00, totalIncome: 73.00, limit: 2, price: 50.00, country: 'Kazakhstan', category: 'plans' },
+    { id: 5, name: 'CloudNova Premium', dailyIncome: 2.83, termDays: 53, rebate: 0.00, totalIncome: 150.00, limit: 2, price: 80.00, country: 'Russia', category: 'plans' },
+    { id: 6, name: 'CloudNova Advanced', dailyIncome: 2.73, termDays: 55, rebate: 0.00, totalIncome: 150.00, limit: 2, price: 100.00, country: 'UK', category: 'plans' },
+    { id: 7, name: 'CloudNova Professional', dailyIncome: 4.38, termDays: 48, rebate: 0.00, totalIncome: 210.00, limit: 3, price: 150.00, country: 'USA', category: 'plans' },
+    { id: 8, name: 'CloudNova Enterprise', dailyIncome: 6.00, termDays: 50, rebate: 0.00, totalIncome: 300.00, limit: 5, price: 200.00, country: 'Global', category: 'plans' },
+    { id: 9, name: 'CloudNova Elite', dailyIncome: 9.09, termDays: 88, rebate: 0.00, totalIncome: 800.00, limit: 5, price: 500.00, country: 'Global', category: 'plans' }
   ];
 
   const filteredMachines = plans.filter(machine => {
