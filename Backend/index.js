@@ -37,6 +37,7 @@ const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
 const MIN_DEPOSIT_AMOUNT = 10;
 const MIN_WITHDRAWAL_AMOUNT = 3;
 const DEPOSIT_TAX_RATE = 0.08;
+const WITHDRAWAL_TAX_RATE = 0.08;
 const VIP_THRESHOLDS = [
   { level: 'LV3', minimumDeposit: 1000 },
   { level: 'LV2', minimumDeposit: 100 },
@@ -274,12 +275,14 @@ app.post('/api/wallet/withdraw', verifyToken, (req, res) => {
     const { address, network, amount } = req.body;
     const wallet = wallets.find(w => w.userId === req.user.id);
     const amt = parseFloat(amount);
-    const reserved = transactions.filter(t => t.userId === req.user.id && t.type === 'withdrawal' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
+    const taxAmount = Number((amt * WITHDRAWAL_TAX_RATE).toFixed(4));
+    const totalDeduction = Number((amt + taxAmount).toFixed(4));
+    const reserved = transactions.filter(t => t.userId === req.user.id && t.type === 'withdrawal' && t.status === 'pending').reduce((sum, t) => sum + (t.amount + (t.taxAmount || 0)), 0);
     if (!address || !network || !Number.isFinite(amt) || amt < MIN_WITHDRAWAL_AMOUNT) return res.status(400).json({ message: `Minimum withdrawal amount is $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)}.` });
-    if (wallet.balance - reserved < amt) return res.status(400).json({ message: 'Insufficient available balance' });
+    if (wallet.balance - reserved < totalDeduction) return res.status(400).json({ message: 'Insufficient available balance' });
 
-    transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'withdrawal', amount: amt, network, txid: address, status: 'pending', date: new Date().toISOString() });
-    return res.status(201).json({ success: true, message: 'Withdrawal locked inside pending approvals pipeline' });
+    transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'withdrawal', amount: amt, taxAmount, totalDeduction, network, txid: address, status: 'pending', date: new Date().toISOString() });
+    return res.status(201).json({ success: true, message: 'Withdrawal locked inside pending approvals pipeline', taxAmount, totalDeduction });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
@@ -403,11 +406,12 @@ app.post('/api/admin/transactions/action', verifyToken, (req, res) => {
     } else return res.status(400).json({ message: 'Action must be approve or reject.' });
     if (action === 'approve' && tx.type === 'withdrawal') {
       const w = wallets.find(wall => wall.userId === tx.userId);
-      if (!w || w.balance < tx.amount) {
+      const totalDeduction = tx.totalDeduction || tx.amount;
+      if (!w || w.balance < totalDeduction) {
         tx.status = 'pending';
         return res.status(400).json({ message: 'Insufficient balance to approve this withdrawal.' });
       }
-      w.balance = Number((w.balance - tx.amount).toFixed(4));
+      w.balance = Number((w.balance - totalDeduction).toFixed(4));
     }
     return res.status(200).json({ success: true, message: 'Status updated' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
