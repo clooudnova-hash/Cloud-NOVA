@@ -19,6 +19,11 @@ const Wallet = () => {
     BankTransfer: { name: 'HAMZA ALI', number: '0314-0033710', bank: 'Local Bank' }
   };
 
+  const parsedAmount = Number.parseFloat(amount || '0');
+  const depositTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.08).toFixed(4)) : 0;
+  const totalToPay = Number.isFinite(parsedAmount) ? Number((parsedAmount + depositTax).toFixed(4)) : 0;
+  const netReceived = Number.isFinite(parsedAmount) ? Number(parsedAmount.toFixed(4)) : 0;
+
   const token = localStorage.getItem('token');
 
   const fetchData = useCallback(() => {
@@ -150,6 +155,18 @@ const Wallet = () => {
               <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($) · Minimum $10.00</label>
               <input type="number" min="10" step="0.01" placeholder="Minimum $10.00" value={amount} onChange={e => setAmount(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500 transition" />
+              <div className="mt-2 flex items-center justify-between text-[10px] font-bold rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-amber-700">
+                <span>8% tax</span>
+                <span>-${depositTax.toFixed(2)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[10px] font-bold rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1.5 text-sky-700">
+                <span>Total to pay</span>
+                <span>${totalToPay.toFixed(2)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[10px] font-bold rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-emerald-700">
+                <span>Net credited</span>
+                <span>${netReceived.toFixed(2)}</span>
+              </div>
             </div>
             <div>
               <label className="text-[10px] text-slate-400 font-bold block mb-1">Transaction ID / Hash</label>

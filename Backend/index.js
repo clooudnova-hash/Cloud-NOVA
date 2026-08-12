@@ -36,6 +36,7 @@ const PROMO_MAX_FAILED_ATTEMPTS = 3;
 const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
 const MIN_DEPOSIT_AMOUNT = 10;
 const MIN_WITHDRAWAL_AMOUNT = 3;
+const DEPOSIT_TAX_RATE = 0.08;
 const VIP_THRESHOLDS = [
   { level: 'LV3', minimumDeposit: 1000 },
   { level: 'LV2', minimumDeposit: 100 },
@@ -248,8 +249,23 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
     if (!txid || !network || !Number.isFinite(depositAmount) || depositAmount < MIN_DEPOSIT_AMOUNT) return res.status(400).json({ message: `Minimum deposit amount is $${MIN_DEPOSIT_AMOUNT.toFixed(2)}.` });
     if (transactions.find(t => t.txid === txid)) return res.status(400).json({ message: 'Transaction hash already exists!' });
 
-    transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'deposit', amount: depositAmount, network, txid, status: 'pending', date: new Date().toISOString() });
-    return res.status(201).json({ success: true, message: 'Deposit proof hash queued successfully' });
+    const taxAmount = Number((depositAmount * DEPOSIT_TAX_RATE).toFixed(4));
+    const totalToPay = Number((depositAmount + taxAmount).toFixed(4));
+    const netAmount = Number(depositAmount.toFixed(4));
+    transactions.push({
+      id: 'tx_' + Math.random().toString(36).substring(2, 9),
+      userId: req.user.id,
+      type: 'deposit',
+      amount: depositAmount,
+      taxAmount,
+      totalToPay,
+      netAmount,
+      network,
+      txid,
+      status: 'pending',
+      date: new Date().toISOString()
+    });
+    return res.status(201).json({ success: true, message: 'Deposit proof hash queued successfully', taxAmount, totalToPay, netAmount });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
@@ -368,7 +384,12 @@ app.post('/api/admin/transactions/action', verifyToken, (req, res) => {
       tx.status = 'completed';
       if (tx.type === 'deposit') {
         const w = wallets.find(wall => wall.userId === tx.userId);
-        if (w) w.balance += tx.amount;
+        const taxAmount = Number((tx.amount * DEPOSIT_TAX_RATE).toFixed(4));
+        const netAmount = Number(tx.amount.toFixed(4));
+        tx.taxAmount = taxAmount;
+        tx.totalToPay = Number((tx.amount + taxAmount).toFixed(4));
+        tx.netAmount = netAmount;
+        if (w) w.balance += netAmount;
         const depositedUser = users.find(user => user.id === tx.userId);
         if (depositedUser) syncVipLevel(depositedUser);
         creditReferralRewards(tx);
