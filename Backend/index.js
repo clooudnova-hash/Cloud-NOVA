@@ -23,6 +23,7 @@ app.use(express.static(FRONTEND_BUILD));
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'CloudNova2026';
 const isGmailAddress = email => /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@gmail\.com$/i.test(String(email || '').trim());
+const isAllowedLoginEmail = email => isGmailAddress(email) || String(email || '').trim().toLowerCase() === 'noor@cloudnova.com';
 
 
 const users = [];
@@ -215,7 +216,7 @@ app.post('/api/auth/login', (req, res) => {
   try {
     const { email, password } = req.body;
     const normalizedEmail = String(email || '').toLowerCase().trim();
-    if (!isGmailAddress(normalizedEmail)) return res.status(400).json({ message: 'Please login with your Gmail address.' });
+    if (!isAllowedLoginEmail(normalizedEmail)) return res.status(400).json({ message: 'Please login with a valid email address.' });
     const user = users.find(u => u.email === normalizedEmail);
     if (!user || !bcrypt.compareSync(password, user.password)) return res.status(400).json({ message: 'Invalid Login Credentials!' });
     if (user.paused) return res.status(403).json({ message: 'This account is paused. Contact an administrator.' });
