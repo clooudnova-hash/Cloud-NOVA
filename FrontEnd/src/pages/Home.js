@@ -5,12 +5,38 @@ export default function Home() {
   const [dashboard, setDashboard] = useState(null);
   const [collectToast, setCollectToast] = useState('');
   const [collecting, setCollecting] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
 
-  // Live BTC price flicker
+  const formatDuration = milliseconds => {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (days > 0) return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+
+  // Refresh the displayed BTC price from a live market source.
   useEffect(() => {
-    const interval = setInterval(() => {
-      setBtcPrice(p => p + (Math.random() * 24 - 12));
-    }, 2000);
+    const loadBtcPrice = async () => {
+      try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+        const data = await response.json();
+        const livePrice = Number(data?.bitcoin?.usd);
+        if (Number.isFinite(livePrice)) setBtcPrice(livePrice);
+      } catch {
+        // Keep the last known price if the market service is unavailable.
+      }
+    };
+
+    loadBtcPrice();
+    const interval = setInterval(loadBtcPrice, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -46,11 +72,17 @@ export default function Home() {
   const balance = dashboard ? `$${parseFloat(dashboard.balance).toFixed(2)}` : '$0.00';
   const minersCount = dashboard?.minersCount ?? 0;
   const vipLevel = dashboard?.vipLevel || 'Bronze';
+  const activeContracts = (dashboard?.miningContracts || []).filter(contract => contract.status === 'active');
+  const incomeNodes = activeContracts.length ? activeContracts : [{ id: 'preview-node', lastCollectedAt: new Date().toISOString(), preview: true }];
 
-  const miningPools = [
-    { id: 1, name: 'CLOUDNOVA HZ Miner1', daily: '$0.30', total: '$11.40', duration: '38 Days', img: '⚡' },
-    { id: 2, name: 'CLOUDNOVA HZ Miner2', daily: '$0.60', total: '$21.00', duration: '35 Days', img: '💎' }
-  ];
+  const miningPools = activeContracts.map((contract, index) => ({
+    id: contract.id,
+    name: `CloudNova ${contract.tier} Miner`,
+    daily: `$${Number(contract.dailyIncome || 0).toFixed(2)}`,
+    total: `$${Number((contract.dailyIncome || 0) * (contract.durationDays || 0)).toFixed(2)}`,
+    duration: `${contract.durationDays || 0} Days`,
+    img: ['⚡', '💎', '🔷'][index % 3]
+  }));
 
   return (
     <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
@@ -75,16 +107,29 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Pyramid */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '240px', position: 'relative', margin: '20px 0' }}>
+        {/* Pyramid and per-miner income timers */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '280px', position: 'relative', margin: '12px 0 8px' }}>
           <div style={{ position: 'relative', width: '0', height: '0', borderLeft: '95px solid transparent', borderRight: '95px solid transparent', borderBottom: '150px solid rgba(30,64,175,0.85)', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.4))', zIndex: 5 }}>
             <div style={{ position: 'absolute', top: '0', left: '0', width: '1px', height: '150px', backgroundColor: 'rgba(255,255,255,0.25)' }}></div>
             <div style={{ position: 'absolute', bottom: '-150px', left: '-65px', width: '130px', height: '4px', backgroundColor: '#60a5fa', boxShadow: '0 0 10px #3b82f6' }}></div>
           </div>
-          <div style={{ position: 'absolute', top: '90px', width: '160px', height: '40px', border: '2px solid rgba(255,255,255,0.15)', borderRadius: '50%', zIndex: 2, boxShadow: '0 0 15px rgba(59,130,246,0.2)' }}></div>
-          <div style={{ position: 'absolute', top: '90px', width: '160px', height: '40px', zIndex: 10, animation: 'gtcStraightOrbit 3s linear infinite' }}>
-            <div style={{ position: 'absolute', top: '-20px', left: '-20px', width: '42px', height: '42px', backgroundColor: '#ff9800', backgroundImage: 'radial-gradient(circle, #ffb74d, #f57c00)', borderRadius: '50%', border: '3px solid #ffe082', boxShadow: '0 0 20px rgba(255,152,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#ffffff', fontWeight: '900', fontSize: '22px' }}>$</div>
-          </div>
+          <div style={{ position: 'absolute', top: '91px', width: '160px', height: '40px', border: '2px solid rgba(255,255,255,0.15)', borderRadius: '50%', zIndex: 2, boxShadow: '0 0 15px rgba(59,130,246,0.2)' }}></div>
+          {incomeNodes.map((contract, index) => {
+            const angle = (index / incomeNodes.length) * Math.PI * 2 - Math.PI / 2;
+            const left = 50 + Math.cos(angle) * 39;
+            const top = 50 + Math.sin(angle) * 39;
+            const lastCollected = new Date(contract.lastCollectedAt).getTime();
+            const readyAt = Number.isFinite(lastCollected) ? lastCollected + 86400000 : null;
+            const ready = readyAt !== null && currentTime >= readyAt;
+            return (
+              <div key={contract.id} style={{ position: 'absolute', left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)', zIndex: 12, width: '76px', textAlign: 'center' }}>
+                <div style={{ width: '42px', height: '42px', margin: '0 auto', backgroundColor: ready ? '#f59e0b' : '#cbd5e1', backgroundImage: ready ? 'radial-gradient(circle, #fcd34d, #f97316)' : 'none', borderRadius: '50%', border: `3px solid ${ready ? '#fde68a' : '#475569'}`, boxShadow: ready ? '0 0 20px rgba(245,158,11,0.7)' : '0 0 15px rgba(59,130,246,0.35)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: ready ? '#ffffff' : '#0f172a', fontWeight: '900', fontSize: '22px', animation: `incomeCoinFloat ${2.2 + (index % 3) * 0.35}s ease-in-out infinite`, animationDelay: `${index * 0.18}s` }}>$</div>
+                <span style={{ display: 'inline-block', marginTop: '5px', background: 'rgba(2,6,23,0.9)', color: ready ? '#86efac' : '#ffffff', borderRadius: '10px', padding: '3px 6px', fontSize: '9px', fontWeight: '800', whiteSpace: 'nowrap' }}>{ready ? 'READY' : readyAt ? formatDuration(readyAt - currentTime) : '--:--:--'}</span>
+              </div>
+            );
+          })}
+          <div style={{ position: 'absolute', left: '50%', top: '57%', transform: 'translate(-50%, -50%)', zIndex: 18, width: '58px', height: '58px', borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #ffe082, #ffb300 45%, #f57c00 80%)', border: '4px solid #ffd54f', boxShadow: '0 0 25px rgba(255,152,0,0.85), inset 0 0 10px rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '31px', fontWeight: '900', animation: 'goldCoinSpin 2.8s ease-in-out infinite' }}>$</div>
+          {!activeContracts.length && <p style={{ position: 'absolute', bottom: '2px', color: '#94a3b8', fontSize: '10px', margin: 0 }}>Demo preview • Start a plan to activate real income</p>}
         </div>
 
         {collectToast && (
@@ -107,6 +152,19 @@ export default function Home() {
           📢 Welcome to CLOUDNOVA — Our Platform is Officially LIVE! Thank you for joining us. We wish you great success on your journey.
         </div>
       </div>
+
+      {/* CLOUD VIDEO */}
+      <section style={{ padding: '20px 40px 0', backgroundColor: '#f8fafc' }}>
+        <div style={{ backgroundColor: '#0f172a', borderRadius: '16px', overflow: 'hidden', border: '1px solid #1e3a8a', boxShadow: '0 8px 24px rgba(15,23,42,0.16)' }}>
+          <div style={{ padding: '14px 16px 10px', color: '#ffffff' }}>
+            <p style={{ margin: 0, color: '#60a5fa', fontSize: '10px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase' }}>CloudNova Media</p>
+            <h2 style={{ margin: '4px 0 0', fontSize: '16px', fontWeight: '900' }}>Cloud Video</h2>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <video src="/cloudvideo.mp4" loop controls playsInline preload="metadata" style={{ display: 'block', width: '100%', maxHeight: '360px', objectFit: 'cover', backgroundColor: '#020617' }} />
+          </div>
+        </div>
+      </section>
 
       {/* LOWER REGION */}
       <div style={{ padding: '24px 40px' }}>
@@ -141,6 +199,11 @@ export default function Home() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {miningPools.length === 0 && (
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px', color: '#64748b', fontSize: '12px', textAlign: 'center' }}>
+              No active mining machines yet. Rent a plan to start earning.
+            </div>
+          )}
           {miningPools.map((pool) => (
             <div key={pool.id} style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 4px rgba(0,0,0,0.01)' }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -148,10 +211,11 @@ export default function Home() {
                 <div>
                   <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: '#1e293b' }}>{pool.name}</h4>
                   <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#64748b' }}>Daily: <span style={{ color: '#0f172a', fontWeight: '500' }}>{pool.daily}</span></p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', fontWeight: 'bold', color: '#2563eb' }}>{pool.total}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#64748b' }}>Term: {pool.duration}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', fontWeight: 'bold', color: '#2563eb' }}>Total: {pool.total}</p>
                 </div>
               </div>
-              <button onClick={() => window.location.href = '/plans'} style={{ backgroundColor: '#2563eb', border: 'none', color: '#fff', fontSize: '12px', fontWeight: 'bold', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer' }}>Rent</button>
+              <span style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac', color: '#15803d', fontSize: '11px', fontWeight: '800', padding: '6px 12px', borderRadius: '6px' }}>Active</span>
             </div>
           ))}
         </div>
@@ -160,6 +224,8 @@ export default function Home() {
       <style>{`
         @keyframes cloudnovaTicker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         @keyframes gtcStraightOrbit { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes incomeCoinFloat { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-9px) rotate(8deg); } }
+        @keyframes goldCoinSpin { 0%, 100% { transform: translate(-50%, -50%) rotateY(0deg) scale(1); } 50% { transform: translate(-50%, -50%) rotateY(180deg) scale(1.08); } }
         @keyframes fluidGraphPulse { 0% { transform: scaleY(0.9) translateY(4px); opacity: 0.85; } 100% { transform: scaleY(1.05) translateY(-2px); opacity: 1; } }
       `}</style>
     </div>

@@ -27,6 +27,7 @@ const Profile = () => {
   const minersCount = dashboard?.minersCount ?? 0;
   const hashrate = dashboard?.effectiveHashrate ?? 0;
   const teamCounts = (dashboard?.team || []).map(level => level.length);
+  const income = dashboard?.incomeSummary || {};
 
   const handleLogout = () => setShowLogoutConfirm(true);
 
@@ -108,6 +109,27 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Projected mining income */}
+      <div className="mx-4 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">Mining Income</h3>
+          <span className="text-[10px] font-bold text-slate-400">Estimated from active miners</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {[
+            { label: 'Daily', value: income.daily },
+            { label: 'Weekly', value: income.weekly },
+            { label: 'Monthly', value: income.monthly }
+          ].map(item => (
+            <div key={item.label} className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm text-center">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{item.label}</p>
+              <p className="text-sm font-black text-emerald-600 mt-1">${Number(item.value || 0).toFixed(2)}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-slate-400 mt-2 text-center">Collected: today ${Number(income.collectedToday || 0).toFixed(2)} · 7 days ${Number(income.collectedThisWeek || 0).toFixed(2)} · 30 days ${Number(income.collectedThisMonth || 0).toFixed(2)}</p>
+      </div>
+
       {/* Referral Section */}
       <div className="mx-4 mb-4">
         <button type="button" onClick={() => setShowBonus(!showBonus)}
@@ -154,6 +176,56 @@ const Profile = () => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Weekly bonus rules */}
+      <div className="mx-4 mb-4 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100">
+          <h3 className="text-xs font-black text-slate-800">Weekly Bonus</h3>
+          <p className="text-[10px] text-slate-400 mt-1">Build your team to unlock weekly rewards.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[440px]">
+            <thead className="bg-blue-50 text-[9px] uppercase tracking-wider text-slate-500 font-black">
+              <tr>
+                <th className="px-3 py-2">Job Title</th>
+                <th className="px-3 py-2">Investors</th>
+                <th className="px-3 py-2">Bonus</th>
+              </tr>
+            </thead>
+            <tbody className="text-[10px] text-slate-600">
+              {[
+                ['New Partner', '0 - 29', '$0'],
+                ['Junior Partner', '30 - 49', '$2 per week'],
+                ['Intermediate Partner', '50 - 99', '$5 per week'],
+                ['Senior Partner', '100 - 199', '$10 per week'],
+                ['Regional Partner', '200 - 499', '$15 per week'],
+                ['City Partner', '500 - 1,299', '$30 per week'],
+                ['Executive Partner', '1,300 - 2,499', '$100 per week'],
+                ['Corporate Partner', '2,500 - 4,999', '$1K per month'],
+                ['Consultant', '≥ 5,000', '$15K per month']
+              ].map(([title, investors, bonus], index) => (
+                <tr key={title} className={index === 0 ? 'bg-blue-50/60' : 'border-t border-slate-100'}>
+                  <td className="px-3 py-2 font-semibold text-slate-700">{title}</td>
+                  <td className="px-3 py-2 text-blue-600 font-bold">{investors}</td>
+                  <td className="px-3 py-2 font-semibold">{bonus}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="px-4 py-3 text-[9px] text-slate-400">Please contact customer service to get your weekly bonus.</p>
+      </div>
+
+      {/* Commission terms */}
+      <div className="mx-4 mb-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+        <h3 className="text-xs font-black text-slate-800">Team Commission Terms &amp; Conditions</h3>
+        <p className="text-[10px] text-slate-400 mt-1">Invite friends to grow your team and earn commission.</p>
+        <ul className="mt-3 space-y-2 text-[10px] text-slate-600 leading-relaxed">
+          <li><span className="text-blue-500 font-black mr-1">•</span> Level 1 team deposits earn <strong className="text-blue-600">6%</strong> commission.</li>
+          <li><span className="text-cyan-500 font-black mr-1">•</span> Level 2 team deposits earn <strong className="text-cyan-600">4%</strong> commission.</li>
+          <li><span className="text-emerald-500 font-black mr-1">•</span> Level 3 team deposits earn <strong className="text-emerald-600">2%</strong> commission.</li>
+        </ul>
       </div>
 
       {/* Menu */}

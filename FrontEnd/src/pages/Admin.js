@@ -32,12 +32,13 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [bonusCodes, setBonusCodes] = useState([]);
   const [taskClaims, setTaskClaims] = useState([]);
-  const [newCode, setNewCode] = useState({ code: '', bonus: '' });
+  const [newCode, setNewCode] = useState({ code: '', bonus: '', startsAt: '', expiresAt: '', maxUsers: '', allowedUserIds: '' });
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [balanceAdj, setBalanceAdj] = useState({}); // { [userId]: { amount, note } }
   const [userSearch, setUserSearch] = useState('');
   const [txSearch, setTxSearch] = useState('');
+  const [txType, setTxType] = useState('all');
 
   const userRole = localStorage.getItem('userRole') || '';
 
@@ -71,10 +72,16 @@ export default function Admin() {
   };
 
   const addCode = async () => {
-    if (!newCode.code || !newCode.bonus) { setMsg('Code aur amount dono chahiye'); return; }
-    const res = await api('/api/admin/bonus/add', { method: 'POST', body: newCode });
+    if (!newCode.code || !newCode.bonus || !newCode.startsAt || !newCode.expiresAt || !newCode.maxUsers) { setMsg('Code, amount, start/end time aur user limit sab chahiye'); return; }
+    const res = await api('/api/admin/bonus/add', {
+      method: 'POST',
+      body: {
+        ...newCode,
+        allowedUserIds: newCode.allowedUserIds.split(',').map(id => id.trim()).filter(Boolean)
+      }
+    });
     setMsg(res.message || res.error);
-    setNewCode({ code: '', bonus: '' });
+    setNewCode({ code: '', bonus: '', startsAt: '', expiresAt: '', maxUsers: '', allowedUserIds: '' });
     await loadAll();
     setTimeout(() => setMsg(''), 3000);
   };
@@ -218,16 +225,35 @@ export default function Admin() {
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '8px 14px', color: '#fff', fontSize: '12px', outline: 'none', width: '260px' }}
               />
             </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                { key: 'all', label: 'All', count: transactions.length },
+                { key: 'deposit', label: 'Deposits', count: transactions.filter(tx => tx.type === 'deposit').length },
+                { key: 'withdrawal', label: 'Withdrawals', count: transactions.filter(tx => tx.type === 'withdrawal').length },
+                { key: 'mining', label: 'Mining Income', count: transactions.filter(tx => tx.type === 'Mining Income').length },
+                { key: 'bonus', label: 'Bonus', count: transactions.filter(tx => tx.type?.includes('Reward')).length }
+              ].map(filter => (
+                <button key={filter.key} type="button" onClick={() => setTxType(filter.key)} style={{ ...btn(txType === filter.key ? '#00b4ff' : 'rgba(255,255,255,0.08)'), border: txType === filter.key ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,0.1)' }}>
+                  {filter.label} ({filter.count})
+                </button>
+              ))}
+            </div>
             <div style={card}>
               {transactions.length === 0
                 ? <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Koi transaction nahi hai</div>
                 : (() => {
-                    const filtered = transactions.filter(tx =>
-                      !txSearch ||
-                      tx.type?.toLowerCase().includes(txSearch.toLowerCase()) ||
-                      tx.network?.toLowerCase().includes(txSearch.toLowerCase()) ||
-                      tx.txid?.toLowerCase().includes(txSearch.toLowerCase())
-                    );
+                    const filtered = transactions.filter(tx => {
+                      const matchesType = txType === 'all'
+                        || (txType === 'deposit' && tx.type === 'deposit')
+                        || (txType === 'withdrawal' && tx.type === 'withdrawal')
+                        || (txType === 'mining' && tx.type === 'Mining Income')
+                        || (txType === 'bonus' && tx.type?.includes('Reward'));
+                      const matchesSearch = !txSearch
+                        || tx.type?.toLowerCase().includes(txSearch.toLowerCase())
+                        || tx.network?.toLowerCase().includes(txSearch.toLowerCase())
+                        || tx.txid?.toLowerCase().includes(txSearch.toLowerCase());
+                      return matchesType && matchesSearch;
+                    });
                     return (
                       <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
@@ -250,8 +276,12 @@ export default function Admin() {
                                   <td style={{ padding: '10px 12px', color: '#fff', fontWeight: '600' }}>{tx.type}</td>
                                   <td style={{ padding: '10px 12px', color: '#10b981', fontWeight: '700' }}>${parseFloat(tx.amount).toFixed(2)}</td>
                                   <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.6)' }}>{tx.network}</td>
-                                  <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.4)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.txid}</td>
-                                  <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.4)' }}>{new Date(tx.date).toLocaleDateString()}</td>
+                                  <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.4)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <div>{tx.txid}</div>
+                                    {tx.type === 'withdrawal' && tx.accountName && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginTop: '3px' }}>Title: {tx.accountName}</div>}
+                                    {tx.type === 'withdrawal' && tx.bankName && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginTop: '3px' }}>Bank: {tx.bankName}</div>}
+                                  </td>
+                                  <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{new Date(tx.date).toLocaleString()}</td>
                                   <td style={{ padding: '10px 12px' }}>
                                     <span style={{ background: `${statusColor[tx.status] || '#888'}22`, color: statusColor[tx.status] || '#888', borderRadius: '6px', padding: '3px 8px', fontWeight: '700', fontSize: '11px' }}>
                                       {tx.status}
@@ -297,12 +327,15 @@ export default function Admin() {
                   !userSearch ||
                   u.fullName.toLowerCase().includes(userSearch.toLowerCase()) ||
                   u.email.toLowerCase().includes(userSearch.toLowerCase())
-                ).map(u => (
+                ).map((u, index) => (
                 <div key={u.id} style={{ ...card, display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
                   {/* User Info Row */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ minWidth: '30px', height: '30px', borderRadius: '9px', background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,180,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#67e8f9', fontSize: '12px', fontWeight: '800' }}>
+                        #{index + 1}
+                      </div>
                       <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #00b4ff, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
                         {u.fullName.charAt(0).toUpperCase()}
                       </div>
@@ -399,6 +432,26 @@ export default function Admin() {
                   <input type="number" value={newCode.bonus} onChange={e => setNewCode(p => ({ ...p, bonus: e.target.value }))}
                     placeholder="e.g. 25" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '14px', outline: 'none', width: '120px' }} />
                 </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase' }}>Active From</label>
+                  <input type="datetime-local" value={newCode.startsAt} onChange={e => setNewCode(p => ({ ...p, startsAt: e.target.value }))}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '12px', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase' }}>Active Until</label>
+                  <input type="datetime-local" value={newCode.expiresAt} onChange={e => setNewCode(p => ({ ...p, expiresAt: e.target.value }))}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '12px', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase' }}>User Limit</label>
+                  <input type="number" min="1" value={newCode.maxUsers} onChange={e => setNewCode(p => ({ ...p, maxUsers: e.target.value }))}
+                    placeholder="e.g. 100" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '14px', outline: 'none', width: '120px' }} />
+                </div>
+                <div style={{ minWidth: '260px', flex: 1 }}>
+                  <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase' }}>Allowed User IDs (optional)</label>
+                  <input value={newCode.allowedUserIds} onChange={e => setNewCode(p => ({ ...p, allowedUserIds: e.target.value }))}
+                    placeholder="usr_abc, usr_xyz — empty means everyone" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '12px', outline: 'none', width: '100%' }} />
+                </div>
                 <button onClick={addCode} style={{ ...btn('linear-gradient(135deg, #00b4ff, #7c3aed)'), padding: '10px 24px', fontSize: '13px', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,180,255,0.2)' }}>Add Code</button>
               </div>
             </div>
@@ -415,6 +468,9 @@ export default function Admin() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                           <span style={{ fontSize: '16px', fontWeight: '800', letterSpacing: '2px', color: c.active ? '#7dd3fc' : 'rgba(255,255,255,0.3)' }}>{c.code}</span>
                           <span style={{ fontSize: '14px', fontWeight: '700', color: '#10b981' }}>${c.bonus}</span>
+                          <span style={{ fontSize: '11px', color: '#fbbf24' }}>{c.claimedCount || 0}/{c.maxUsers} users</span>
+                          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>{c.startsAt ? new Date(c.startsAt).toLocaleString() : '—'} to {c.expiresAt ? new Date(c.expiresAt).toLocaleString() : '—'}</span>
+                          {c.allowedUserIds?.length > 0 && <span style={{ fontSize: '10px', color: '#c4b5fd' }}>Restricted: {c.allowedUserIds.length} users</span>}
                           <span style={{ fontSize: '11px', background: c.active ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.1)', color: c.active ? '#34d399' : '#f87171', borderRadius: '6px', padding: '3px 8px', fontWeight: '700' }}>
                             {c.active ? 'Active' : 'Used/Inactive'}
                           </span>

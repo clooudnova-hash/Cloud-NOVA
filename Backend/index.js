@@ -22,6 +22,7 @@ app.use(express.static(FRONTEND_BUILD));
 
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'CloudNova2026';
+const isGmailAddress = email => /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@gmail\.com$/i.test(String(email || '').trim());
 
 
 const users = [];
@@ -38,6 +39,15 @@ const MIN_DEPOSIT_AMOUNT = 10;
 const MIN_WITHDRAWAL_AMOUNT = 3;
 const DEPOSIT_TAX_RATE = 0.08;
 const WITHDRAWAL_TAX_RATE = 0.08;
+const getPakistanBusinessTime = () => {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Karachi', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(new Date());
+  return { weekday: parts.find(part => part.type === 'weekday')?.value, hour: Number(parts.find(part => part.type === 'hour')?.value) };
+};
+const isWithinBusinessHours = weekdaysOnly => {
+  const { weekday, hour } = getPakistanBusinessTime();
+  const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekday);
+  return hour >= 10 && hour < 21 && (!weekdaysOnly || isWeekday);
+};
 const VIP_THRESHOLDS = [
   { level: 'LV3', minimumDeposit: 1000 },
   { level: 'LV2', minimumDeposit: 100 },
@@ -87,6 +97,26 @@ const getMiningSummary = (userId) => miningContracts
     ...contract,
     status: new Date(contract.endDate) <= new Date() ? 'expired' : 'active'
   }));
+
+const getIncomeSummary = (userId) => {
+  const now = new Date();
+  const activeDailyIncome = miningContracts
+    .filter(contract => contract.userId === userId && new Date(contract.endDate) > now)
+    .reduce((sum, contract) => sum + Number(contract.dailyIncome || 0), 0);
+  const miningIncomeTransactions = transactions.filter(transaction => transaction.userId === userId && transaction.type === 'Mining Income' && transaction.status === 'completed');
+  const collectedSince = days => miningIncomeTransactions
+    .filter(transaction => now - new Date(transaction.date) <= days * 86400000)
+    .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+
+  return {
+    daily: Number(activeDailyIncome.toFixed(2)),
+    weekly: Number((activeDailyIncome * 7).toFixed(2)),
+    monthly: Number((activeDailyIncome * 30).toFixed(2)),
+    collectedToday: Number(collectedSince(1).toFixed(2)),
+    collectedThisWeek: Number(collectedSince(7).toFixed(2)),
+    collectedThisMonth: Number(collectedSince(30).toFixed(2))
+  };
+};
 
 const syncMiningWallet = (userId) => {
   const wallet = wallets.find(item => item.userId === userId);
@@ -145,6 +175,7 @@ app.post('/api/auth/send-otp', (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: 'Email address field cannot be blank!' });
   const normalizedEmail = email.toLowerCase().trim();
+  if (!isGmailAddress(normalizedEmail)) return res.status(400).json({ message: 'Please use a valid Gmail address ending in @gmail.com.' });
   const userExists = users.find(u => u.email === normalizedEmail);
   if (userExists) return res.status(400).json({ message: 'This email is already registered!' });
   // Store a fixed bypass code so the frontend OTP field passes validation
@@ -160,6 +191,7 @@ app.post('/api/auth/signup', (req, res) => {
     if (!fullName || !email || !password || !otpCode) return res.status(400).json({ message: 'Missing core signup fields!' });
 
     const normalizedEmail = email.toLowerCase().trim();
+    if (!isGmailAddress(normalizedEmail)) return res.status(400).json({ message: 'Please use a valid Gmail address ending in @gmail.com.' });
     // OTP verification bypassed
 
     if (users.find(u => u.email === normalizedEmail)) return res.status(400).json({ message: 'This email is already registered!' });
@@ -182,7 +214,9 @@ app.post('/api/auth/signup', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = users.find(u => u.email === email.toLowerCase().trim());
+    const normalizedEmail = String(email || '').toLowerCase().trim();
+    if (!isGmailAddress(normalizedEmail)) return res.status(400).json({ message: 'Please login with your Gmail address.' });
+    const user = users.find(u => u.email === normalizedEmail);
     if (!user || !bcrypt.compareSync(password, user.password)) return res.status(400).json({ message: 'Invalid Login Credentials!' });
     if (user.paused) return res.status(403).json({ message: 'This account is paused. Contact an administrator.' });
 
@@ -203,7 +237,7 @@ app.get('/api/user/dashboard', verifyToken, (req, res) => {
       fullName: user.fullName, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: user.myReferralCode,
       username: user.username, referredBy: user.referredBy, paused: user.paused,
       balance: wallet.balance, baseHashrate: wallet.baseHashrate, effectiveHashrate: wallet.effectiveHashrate, minersCount: wallet.minersCount,
-      team: getTeamTree(user.id), miningContracts: getMiningSummary(user.id)
+      team: getTeamTree(user.id), miningContracts: getMiningSummary(user.id), incomeSummary: getIncomeSummary(user.id)
     });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -244,6 +278,7 @@ app.post('/api/mining/collect', verifyToken, (req, res) => {
 
 app.post('/api/wallet/deposit', verifyToken, (req, res) => {
   try {
+    if (!isWithinBusinessHours(false)) return res.status(400).json({ message: 'Deposits are accepted from 10:00 AM to 09:00 PM Pakistan time.' });
     const { txid, network, amount } = req.body;
     const depositAmount = parseFloat(amount);
     if (network !== 'EasyPaisa') return res.status(400).json({ message: 'Deposits are available only through EasyPaisa.' });
@@ -272,17 +307,18 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
 
 app.post('/api/wallet/withdraw', verifyToken, (req, res) => {
   try {
-    const { address, network, amount } = req.body;
+    if (!isWithinBusinessHours(true)) return res.status(400).json({ message: 'Withdrawals are accepted Monday to Friday, 10:00 AM to 09:00 PM Pakistan time.' });
+    const { address, accountName, bankName, network, amount } = req.body;
     const wallet = wallets.find(w => w.userId === req.user.id);
-    const amt = parseFloat(amount);
-    const taxAmount = Number((amt * WITHDRAWAL_TAX_RATE).toFixed(4));
-    const totalDeduction = Number((amt + taxAmount).toFixed(4));
+    const totalDeduction = parseFloat(amount);
+    const taxAmount = Number((totalDeduction * WITHDRAWAL_TAX_RATE).toFixed(4));
+    const netAmount = Number((totalDeduction - taxAmount).toFixed(4));
     const reserved = transactions.filter(t => t.userId === req.user.id && t.type === 'withdrawal' && t.status === 'pending').reduce((sum, t) => sum + (t.amount + (t.taxAmount || 0)), 0);
-    if (!address || !network || !Number.isFinite(amt) || amt < MIN_WITHDRAWAL_AMOUNT) return res.status(400).json({ message: `Minimum withdrawal amount is $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)}.` });
+    if (!address || !accountName || (network === 'BankTransfer' && !bankName) || !['EasyPaisa', 'JazzCash', 'BankTransfer'].includes(network) || !Number.isFinite(totalDeduction) || totalDeduction < MIN_WITHDRAWAL_AMOUNT) return res.status(400).json({ message: `Enter valid withdrawal details. Minimum withdrawal amount is $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)}.` });
     if (wallet.balance - reserved < totalDeduction) return res.status(400).json({ message: 'Insufficient available balance' });
 
-    transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'withdrawal', amount: amt, taxAmount, totalDeduction, network, txid: address, status: 'pending', date: new Date().toISOString() });
-    return res.status(201).json({ success: true, message: 'Withdrawal locked inside pending approvals pipeline', taxAmount, totalDeduction });
+    transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'withdrawal', amount: netAmount, taxAmount, totalDeduction, network, txid: address, accountName: accountName.trim(), bankName: bankName ? bankName.trim() : '', status: 'pending', date: new Date().toISOString() });
+    return res.status(201).json({ success: true, message: 'Withdrawal locked inside pending approvals pipeline', taxAmount, totalDeduction, netAmount });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
@@ -346,6 +382,21 @@ app.post('/api/bonus/claim', verifyToken, (req, res) => {
     }
 
     const voucher = couponVouchers.find(c => c.code === String(code || '') && c.active);
+    if (voucher) {
+      const allowedUserIds = voucher.allowedUserIds || [];
+      if (allowedUserIds.length > 0 && !allowedUserIds.includes(user.id)) {
+        return res.status(403).json({ message: 'This bonus code is not available for your account.' });
+      }
+      const startsAt = new Date(voucher.startsAt).getTime();
+      const expiresAt = new Date(voucher.expiresAt).getTime();
+      const usedCount = bonusClaims.filter(claim => claim.code === voucher.code).length;
+      if (!Number.isFinite(startsAt) || !Number.isFinite(expiresAt) || now < startsAt || now > expiresAt) {
+        return res.status(400).json({ message: 'This bonus code is outside its active time window.' });
+      }
+      if (usedCount >= voucher.maxUsers) {
+        return res.status(400).json({ message: 'This bonus code has reached its user limit.' });
+      }
+    }
     if (!voucher) {
       user.promoFailedAttempts = (user.promoFailedAttempts || 0) + 1;
       if (user.promoFailedAttempts >= PROMO_MAX_FAILED_ATTEMPTS) {
@@ -486,19 +537,26 @@ app.post('/api/admin/users/set-vip', verifyToken, (req, res) => {
 // Admin: list bonus codes
 app.get('/api/admin/bonus', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
-  return res.status(200).json(couponVouchers);
+  return res.status(200).json(couponVouchers.map(voucher => ({
+    ...voucher,
+    claimedCount: bonusClaims.filter(claim => claim.code === voucher.code).length
+  })));
 });
 
 // Admin: add bonus code
 app.post('/api/admin/bonus/add', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
-    const { code, bonus } = req.body;
+    const { code, bonus, startsAt, expiresAt, maxUsers, allowedUserIds } = req.body;
     const reward = parseFloat(bonus);
+    const startDate = new Date(startsAt);
+    const expiryDate = new Date(expiresAt);
+    const userLimit = parseInt(maxUsers, 10);
+    const restrictedUsers = Array.isArray(allowedUserIds) ? [...new Set(allowedUserIds.map(id => String(id).trim()).filter(Boolean))] : [];
     const exactCode = String(code || '').trim();
-    if (!exactCode || !Number.isFinite(reward) || reward <= 0) return res.status(400).json({ message: 'Code and a positive reward amount are required' });
+    if (!exactCode || !Number.isFinite(reward) || reward <= 0 || !Number.isFinite(startDate.getTime()) || !Number.isFinite(expiryDate.getTime()) || expiryDate <= startDate || !Number.isInteger(userLimit) || userLimit < 1) return res.status(400).json({ message: 'Enter a valid code, reward, time window, and user limit.' });
     if (couponVouchers.find(c => c.code === exactCode)) return res.status(400).json({ message: 'Code already exists' });
-    couponVouchers.push({ code: exactCode, bonus: reward, active: true });
+    couponVouchers.push({ code: exactCode, bonus: reward, startsAt: startDate.toISOString(), expiresAt: expiryDate.toISOString(), maxUsers: userLimit, allowedUserIds: restrictedUsers, active: true });
     return res.status(201).json({ success: true, message: 'Bonus code added!' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });

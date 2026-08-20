@@ -74,6 +74,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!/^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@gmail\.com$/i.test(formData.email.trim())) { setError('Please use a valid Gmail address ending in @gmail.com.'); return; }
     if (formData.password !== formData.confirmPassword) { setError('Passwords do not match.'); return; }
     if (!formData.agreeToTerms) { setError('Please accept the Terms of Service.'); return; }
     setSubmitLoading(true);

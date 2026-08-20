@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 import Home from './pages/Home';
@@ -18,8 +18,9 @@ function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPage = location.pathname;
+  const [showCommunityPopup, setShowCommunityPopup] = useState(true);
 
-  const hideChrome = ['/login', '/register'].includes(currentPage);
+  const hideChrome = ['/login', '/register', '/signup'].includes(currentPage);
   const hideHeader = hideChrome || currentPage === '/plans';
 
   return (
@@ -103,6 +104,34 @@ function AppLayout() {
           <Route path="/bonus" element={<Bonus />} />
         </Routes>
       </main>
+
+      {showCommunityPopup && !hideChrome && (
+        <div role="dialog" aria-modal="true" aria-labelledby="community-popup-title" style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(2, 6, 23, 0.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(5px)' }}>
+          <div style={{ width: '100%', maxWidth: '390px', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto', background: 'linear-gradient(160deg, #0b1a50 0%, #102b75 58%, #07112f 100%)', border: '1px solid rgba(0, 210, 255, 0.35)', borderRadius: '26px', boxShadow: '0 24px 80px rgba(0,0,0,0.55)', color: '#ffffff', position: 'relative' }}>
+            <button type="button" aria-label="Close community popup" onClick={() => setShowCommunityPopup(false)} style={{ position: 'absolute', top: '16px', right: '16px', width: '34px', height: '34px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.1)', color: '#ffffff', fontSize: '22px', lineHeight: 1, cursor: 'pointer' }}>×</button>
+            <div style={{ padding: '30px 24px 22px', textAlign: 'center' }}>
+              <div style={{ width: '64px', height: '64px', margin: '0 auto 14px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #00d2ff, #2563eb)', boxShadow: '0 0 26px rgba(0,210,255,0.35)', fontSize: '32px' }}>📣</div>
+              <p style={{ margin: 0, color: '#67e8f9', fontSize: '11px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>Official CloudNova Community</p>
+              <h2 id="community-popup-title" style={{ margin: '8px 0 10px', fontSize: '24px', fontWeight: '900' }}>Stay Connected</h2>
+              <p style={{ margin: 0, color: '#cbd5e1', fontSize: '13px', lineHeight: 1.6 }}>Get the latest announcements, bonus updates and important platform notifications directly from CloudNova.</p>
+            </div>
+
+            <div style={{ padding: '0 20px 20px', display: 'grid', gap: '12px' }}>
+              <a href="https://whatsapp.com/channel/0029Vb8CeqrG8l57aaUcYd3s" target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '13px', padding: '15px', borderRadius: '16px', textDecoration: 'none', background: 'linear-gradient(135deg, #00bfa5, #087f8c)', border: '1px solid rgba(103,232,249,0.35)', color: '#ffffff', boxShadow: '0 8px 18px rgba(0,0,0,0.18)' }}>
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '21px' }}>📢</span>
+                <span style={{ flex: 1 }}><strong style={{ display: 'block', fontSize: '14px' }}>Official WhatsApp Channel</strong><small style={{ display: 'block', marginTop: '3px', color: '#ccfbf1', fontSize: '11px' }}>Announcements and latest updates</small></span>
+                <span style={{ fontSize: '20px' }}>›</span>
+              </a>
+              <a href="https://chat.whatsapp.com/CUUWbez2txZDolQWAGl6ql?s=cl&p=a&ilr=1" target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '13px', padding: '15px', borderRadius: '16px', textDecoration: 'none', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: '1px solid rgba(147,197,253,0.35)', color: '#ffffff', boxShadow: '0 8px 18px rgba(0,0,0,0.18)' }}>
+                <span style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '21px' }}>💬</span>
+                <span style={{ flex: 1 }}><strong style={{ display: 'block', fontSize: '14px' }}>Join WhatsApp Group</strong><small style={{ display: 'block', marginTop: '3px', color: '#dbeafe', fontSize: '11px' }}>Connect with the CloudNova community</small></span>
+                <span style={{ fontSize: '20px' }}>›</span>
+              </a>
+              <button type="button" onClick={() => setShowCommunityPopup(false)} style={{ marginTop: '2px', padding: '13px', borderRadius: '14px', border: '1px solid rgba(148,163,184,0.35)', background: 'rgba(255,255,255,0.07)', color: '#cbd5e1', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>Maybe Later</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!hideChrome && (
         <nav style={{

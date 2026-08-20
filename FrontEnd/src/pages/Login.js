@@ -16,6 +16,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    if (!/^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@gmail\.com$/i.test(formData.email.trim())) { setErrorMessage('Please login with a valid Gmail address.'); return; }
     setLoading(true);
     try {
       const response = await fetch('/api/auth/login', {

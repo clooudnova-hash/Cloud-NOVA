@@ -7,6 +7,7 @@ const Wallet = () => {
   const [txid, setTxid] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
+  const [bankName, setBankName] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [msgType, setMsgType] = useState(''); // 'success' | 'error'
@@ -24,7 +25,7 @@ const Wallet = () => {
   const totalToPay = Number.isFinite(parsedAmount) ? Number((parsedAmount + depositTax).toFixed(4)) : 0;
   const netReceived = Number.isFinite(parsedAmount) ? Number(parsedAmount.toFixed(4)) : 0;
   const withdrawalTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.08).toFixed(4)) : 0;
-  const totalDeduction = Number.isFinite(parsedAmount) ? Number((parsedAmount + withdrawalTax).toFixed(4)) : 0;
+  const withdrawalReceived = Number.isFinite(parsedAmount) ? Number((parsedAmount - withdrawalTax).toFixed(4)) : 0;
 
   const token = localStorage.getItem('token');
 
@@ -79,10 +80,10 @@ const Wallet = () => {
       const res = await fetch('/api/wallet/withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', authorization: token },
-        body: JSON.stringify({ address: accountNumber, network: paymentMethod, amount: parseFloat(amount) })
+        body: JSON.stringify({ address: accountNumber, accountName, bankName, network: paymentMethod, amount: parseFloat(amount) })
       });
       const data = await res.json();
-      if (res.ok) { showMsg('✅ ' + data.message, 'success'); setAmount(''); setAccountNumber(''); setAccountName(''); fetchData(); }
+      if (res.ok) { showMsg('✅ ' + data.message, 'success'); setAmount(''); setAccountNumber(''); setAccountName(''); setBankName(''); fetchData(); }
       else { showMsg('❌ ' + data.message, 'error'); }
     } catch { showMsg('❌ Network error. Try again.', 'error'); }
     finally { setLoading(false); }
@@ -194,8 +195,12 @@ const Wallet = () => {
                 <span>-${withdrawalTax.toFixed(2)}</span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[10px] font-bold rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-red-700">
-                <span>Total deduction</span>
-                <span>${totalDeduction.toFixed(2)}</span>
+                <span>You receive</span>
+                <span>${Math.max(0, withdrawalReceived).toFixed(2)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[10px] font-bold rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1.5 text-sky-700">
+                <span>Total deducted from balance</span>
+                <span>${Math.max(0, parsedAmount).toFixed(2)}</span>
               </div>
             </div>
             <div>
@@ -208,6 +213,13 @@ const Wallet = () => {
               <input type="text" placeholder="Account holder name" value={accountName} onChange={e => setAccountName(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none transition" />
             </div>
+            {paymentMethod === 'BankTransfer' && (
+              <div>
+                <label className="text-[10px] text-slate-400 font-bold block mb-1">Bank Name</label>
+                <input type="text" placeholder="Enter bank name" value={bankName} onChange={e => setBankName(e.target.value)}
+                  className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none transition" />
+              </div>
+            )}
             <button type="submit" disabled={loading}
               className="w-full bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white text-xs font-black py-3.5 rounded-xl uppercase tracking-wider shadow-[0_4px_15px_rgba(59,130,246,0.3)] transition-all disabled:opacity-50">
               {loading ? 'Processing...' : 'Initiate Withdrawal'}
