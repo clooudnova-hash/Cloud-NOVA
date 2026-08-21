@@ -47,7 +47,7 @@ const MyMining = () => {
   const expectedToday = activeMachines.reduce((sum, item) => sum + item.dailyYield, 0);
 
   return (
-    <div className="min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
+    <div className="premium-page min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
       
       {/* Top Banner with Vibrant Blue (Wallet Page Color Style) */}
       <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">

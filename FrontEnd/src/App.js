@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { House, Zap, WalletCards, Gift, Crown, UserRound } from 'lucide-react';
 
 import Home from './pages/Home';
 import MiningPlans from './pages/MiningPlans';
@@ -19,9 +20,43 @@ function AppLayout() {
   const location = useLocation();
   const currentPage = location.pathname;
   const [showCommunityPopup, setShowCommunityPopup] = useState(true);
-
+  const [platformStats, setPlatformStats] = useState({ members: 0, deposits: 0, depositedAmount: 0, withdrawals: 0, withdrawnAmount: 0, activities: [] });
+  const [activityNotice, setActivityNotice] = useState(null);
   const hideChrome = ['/login', '/register', '/signup'].includes(currentPage);
   const hideHeader = hideChrome || currentPage === '/plans';
+
+  useEffect(() => {
+    fetch('/api/public/stats')
+      .then(response => response.ok ? response.json() : null)
+      .then(data => { if (data) setPlatformStats(data); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (hideChrome) return undefined;
+    const notices = (platformStats.activities || []).map(activity => ({
+      icon: activity.type === 'deposit' ? '📥' : '📤',
+      text: activity.type === 'deposit'
+        ? `Deposit received: $${Number(activity.amount).toFixed(2)}`
+        : `Withdrawal processed: $${Number(activity.amount).toFixed(2)}`
+    }));
+    if (!notices.length) return undefined;
+    let noticeIndex = 0;
+    let hideTimer;
+    const showNotice = () => {
+      setActivityNotice(notices[noticeIndex % notices.length]);
+      noticeIndex += 1;
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => setActivityNotice(null), 5200);
+    };
+    const initialTimer = setTimeout(showNotice, 3500);
+    const interval = setInterval(showNotice, 12000);
+    return () => {
+      clearTimeout(initialTimer);
+      clearTimeout(hideTimer);
+      clearInterval(interval);
+    };
+  }, [hideChrome, platformStats]);
 
   return (
     <div style={{
@@ -36,7 +71,7 @@ function AppLayout() {
       boxSizing: 'border-box',
     }}>
       {!hideHeader && (
-        <header style={{
+        <header className="app-header" style={{
           backgroundColor: '#0b1a50',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
           padding: '10px 40px',
@@ -48,8 +83,10 @@ function AppLayout() {
           zIndex: 100,
           width: '100%',
           boxSizing: 'border-box',
+          boxShadow: '0 8px 24px rgba(2, 6, 23, 0.16)',
+          backdropFilter: 'blur(14px)',
         }}>
-          <div
+          <div className="app-brand"
             onClick={() => navigate('/')}
             style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
           >
@@ -70,7 +107,7 @@ function AppLayout() {
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div className="app-auth-actions" style={{ display: 'flex', gap: '12px' }}>
             <button type="button" onClick={() => navigate('/login')} style={{ fontSize: '12px', color: '#ffffff', backgroundColor: 'rgba(255,255,255,0.08)', padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', fontWeight: '600' }}>
               Login
             </button>
@@ -87,6 +124,7 @@ function AppLayout() {
         margin: '0 auto',
         paddingBottom: hideChrome ? 0 : '80px',
         boxSizing: 'border-box',
+          position: 'relative',
       }}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -104,6 +142,13 @@ function AppLayout() {
           <Route path="/bonus" element={<Bonus />} />
         </Routes>
       </main>
+
+      {activityNotice && !hideChrome && (
+        <div role="status" aria-live="polite" style={{ position: 'fixed', left: '16px', bottom: '86px', zIndex: 1100, display: 'flex', alignItems: 'center', gap: '10px', maxWidth: 'calc(100vw - 32px)', padding: '11px 14px', borderRadius: '14px', background: 'linear-gradient(135deg, #0b1a50, #153393)', border: '1px solid rgba(0,210,255,0.35)', color: '#fff', boxShadow: '0 12px 30px rgba(2,6,23,0.35)', animation: 'cloudnovaNoticeIn 280ms ease-out' }}>
+          <span style={{ width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: '10px', background: 'rgba(0,210,255,0.16)', fontSize: '16px' }}>{activityNotice.icon}</span>
+          <span style={{ fontSize: '12px', fontWeight: '800', lineHeight: 1.3 }}>{activityNotice.text}</span>
+        </div>
+      )}
 
       {showCommunityPopup && !hideChrome && (
         <div role="dialog" aria-modal="true" aria-labelledby="community-popup-title" style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(2, 6, 23, 0.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(5px)' }}>
@@ -139,29 +184,32 @@ function AppLayout() {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: '#171923',
-          borderTop: '1px solid #2d3748',
+          background: 'linear-gradient(180deg, #0b1a50 0%, #07112f 100%)',
+          borderTop: '1px solid rgba(0,210,255,0.22)',
           padding: '10px 0',
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
           zIndex: 100,
           boxShadow: '0 -4px 15px rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(14px)',
         }}>
           {[
-            { path: '/', label: 'Home', icon: '🏠' },
-            { path: '/plans', label: 'Mining', icon: '⚡' },
-            { path: '/wallet', label: 'Wallet', icon: '💳' },
-            { path: '/bonus', label: 'Bonus', icon: '🎁' },
-            { path: '/vip', label: 'VIP', icon: '👑' },
-            { path: '/profile', label: 'Profile', icon: '👤' },
+            { path: '/', label: 'Home', icon: House },
+            { path: '/plans', label: 'Mining', icon: Zap },
+            { path: '/wallet', label: 'Wallet', icon: WalletCards },
+            { path: '/bonus', label: 'Bonus', icon: Gift },
+            { path: '/vip', label: 'VIP', icon: Crown },
+            { path: '/profile', label: 'Profile', icon: UserRound },
           ].map(({ path, label, icon }) => (
             <div
               key={path}
               onClick={() => navigate(path)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: 'pointer', width: '60px' }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', width: '60px', padding: '3px 0', borderRadius: '12px', transition: 'background 180ms ease' }}
             >
-              <span style={{ fontSize: '20px', opacity: currentPage === path ? 1 : 0.45 }}>{icon}</span>
+              <span style={{ width: '34px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', color: currentPage === path ? '#00d2ff' : '#a0aec0', background: currentPage === path ? 'rgba(0,210,255,0.12)' : 'transparent', boxShadow: currentPage === path ? '0 0 14px rgba(0,210,255,0.16)' : 'none' }}>
+                {React.createElement(icon, { size: 19, strokeWidth: currentPage === path ? 2.6 : 1.8 })}
+              </span>
               <span style={{ fontSize: '10px', color: currentPage === path ? '#00d2ff' : '#a0aec0', fontWeight: currentPage === path ? '800' : '400' }}>{label}</span>
             </div>
           ))}
@@ -173,7 +221,7 @@ function AppLayout() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppLayout />
     </BrowserRouter>
   );

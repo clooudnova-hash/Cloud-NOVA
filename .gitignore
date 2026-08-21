@@ -2,3 +2,5 @@
 node_modules/
 FrontEnd/node_modules/
 npm-debug.log*
+Backend/data/*.json
+FrontEnd/android/local.properties

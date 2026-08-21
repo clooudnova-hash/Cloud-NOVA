@@ -3,21 +3,22 @@ import React from 'react';
 const MachineCard = ({ data, onRent, renting }) => {
   const { id, name, dailyIncome, termDays, rebate, totalIncome, limit, price, image } = data || {};
   const isPremium = price >= 200;
+  const isLimitedOffer = price <= 80;
 
   // Cycle through miner images if no specific image provided
   const imgSrc = image || `/miner${((id - 1) % 3) + 1}.jpg`;
 
   return (
-    <div className={`relative rounded-2xl p-4 flex justify-between shadow-sm transition duration-200 ${isPremium ? 'bg-gradient-to-r from-[#fffaf0] to-[#fff1c7] border-2 border-amber-400 shadow-[0_6px_20px_rgba(245,158,11,0.2)] hover:shadow-[0_8px_26px_rgba(245,158,11,0.3)]' : 'bg-white border border-slate-100 hover:shadow-md'}`}>
-      {isPremium && (
-        <div className="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black tracking-[0.18em] px-3 py-1 rounded-full shadow-md border-2 border-white">
-          PREMIUM
+    <div className={`group relative rounded-2xl p-4 flex justify-between gap-3 border-l-4 shadow-[0_8px_24px_rgba(15,23,42,0.07)] transition duration-200 hover:-translate-y-0.5 ${isPremium ? 'bg-gradient-to-br from-[#fffdf5] via-[#fff8df] to-[#ffedb0] border-amber-400 border-l-orange-500 shadow-[0_8px_28px_rgba(245,158,11,0.2)] hover:shadow-[0_12px_32px_rgba(245,158,11,0.28)]' : 'bg-gradient-to-r from-white via-white to-[#edf6ff] border-blue-200 border-l-[#2563eb] hover:border-cyan-300 hover:border-l-cyan-500 hover:shadow-[0_10px_28px_rgba(37,99,235,0.16)]'}`}>
+      {(isPremium || isLimitedOffer) && (
+        <div className={`absolute -top-3 right-4 text-white text-[9px] font-black tracking-[0.16em] px-3 py-1 rounded-full shadow-md border-2 border-white ${isPremium ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-600 to-cyan-500'}`}>
+          {isPremium ? 'PREMIUM' : 'LIMITED OFFER'}
         </div>
       )}
 
       {/* Left: Machine Image */}
       <div className="flex gap-4 items-start w-2/3">
-        <div className="w-20 h-20 rounded-xl flex-shrink-0 overflow-hidden border border-blue-500/30 shadow-[0_0_12px_rgba(34,211,238,0.25)] relative bg-[#070b19]">
+        <div className="w-20 h-20 rounded-xl flex-shrink-0 overflow-hidden border border-cyan-500/30 shadow-[0_0_16px_rgba(34,211,238,0.2)] relative bg-[#071126]">
           <img
             src={imgSrc}
             alt={name}
@@ -36,7 +37,7 @@ const MachineCard = ({ data, onRent, renting }) => {
         </div>
 
         <div className="space-y-1.5">
-          <h3 className="text-[13px] font-extrabold text-slate-800 leading-tight">{name || 'CloudNova Machine'}</h3>
+          <h3 className="text-[13px] font-extrabold text-slate-900 leading-tight">{name || 'CloudNova Machine'}</h3>
           <div className="text-[10px] text-slate-400 font-medium space-y-0.5">
             <p>Daily Income: <span className="text-slate-600 font-bold">${dailyIncome ? dailyIncome.toFixed(2) : '0.00'}</span></p>
             <p>Contract Period: <span className="text-slate-600 font-bold">{termDays || 0} Days</span></p>
@@ -51,8 +52,8 @@ const MachineCard = ({ data, onRent, renting }) => {
       {/* Right: Income + Rent button */}
       <div className="flex flex-col justify-between items-end w-1/3 text-right">
         <div className="text-[10px] text-slate-400 font-medium space-y-0.5">
-          <p>Total income</p>
-          <p className="text-slate-700 font-black text-[12px]">${totalIncome ? totalIncome.toFixed(2) : '0.00'}</p>
+          <p className="uppercase tracking-wider text-[9px]">Total income</p>
+          <p className="text-emerald-700 font-black text-[13px]">${totalIncome ? totalIncome.toFixed(2) : '0.00'}</p>
           <p className="text-[9px] pt-1">Quantity Limits</p>
           <p className="text-slate-700 font-bold">{limit || 1}</p>
         </div>
@@ -61,7 +62,7 @@ const MachineCard = ({ data, onRent, renting }) => {
           type="button"
           onClick={() => onRent && onRent(data)}
           disabled={renting}
-          className={`${isPremium ? 'bg-amber-500 hover:bg-amber-600' : 'bg-[#1e88e5] hover:bg-[#1565c0]'} text-white text-[10px] font-black px-5 py-1.5 rounded-lg shadow-sm transition active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed`}
+          className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] hover:from-[#2563eb] hover:to-[#1e40af] text-white text-[10px] font-black px-5 py-2 rounded-lg shadow-[0_4px_10px_rgba(37,99,235,0.3)] transition active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {renting ? '...' : 'RENT'}
         </button>

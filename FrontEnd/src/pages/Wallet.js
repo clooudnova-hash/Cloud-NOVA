@@ -5,6 +5,7 @@ const Wallet = () => {
   const [paymentMethod, setPaymentMethod] = useState('EasyPaisa');
   const [amount, setAmount] = useState('');
   const [txid, setTxid] = useState('');
+  const [proofImage, setProofImage] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [bankName, setBankName] = useState('');
@@ -56,15 +57,16 @@ const Wallet = () => {
     if (!amount) { showMsg('Please enter amount.', 'error'); return; }
     if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 10) { showMsg('Minimum deposit amount is $10.00.', 'error'); return; }
     if (!txid) { showMsg('Please enter transaction ID / hash.', 'error'); return; }
+    if (!proofImage) { showMsg('Please upload your payment screenshot.', 'error'); return; }
     setLoading(true);
     try {
       const res = await fetch('/api/wallet/deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', authorization: token },
-        body: JSON.stringify({ txid, network: paymentMethod, amount: parseFloat(amount) })
+        body: JSON.stringify({ txid, network: paymentMethod, amount: parseFloat(amount), proofImage })
       });
       const data = await res.json();
-      if (res.ok) { showMsg('✅ ' + data.message, 'success'); setAmount(''); setTxid(''); fetchData(); }
+      if (res.ok) { showMsg('✅ ' + data.message, 'success'); setAmount(''); setTxid(''); setProofImage(''); fetchData(); }
       else { showMsg('❌ ' + data.message, 'error'); }
     } catch { showMsg('❌ Network error. Try again.', 'error'); }
     finally { setLoading(false); }
@@ -90,7 +92,7 @@ const Wallet = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
+    <div className="premium-page min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
 
       {/* Top Balance Card */}
       <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
@@ -175,6 +177,20 @@ const Wallet = () => {
               <label className="text-[10px] text-slate-400 font-bold block mb-1">Transaction ID / Hash</label>
               <input type="text" placeholder="Paste TxID or hash here" value={txid} onChange={e => setTxid(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500 transition font-mono" />
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 font-bold block mb-1">Payment Screenshot · Required</label>
+              <input type="file" accept="image/png,image/jpeg,image/webp" required
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) { showMsg('Screenshot must be 5 MB or smaller.', 'error'); e.target.value = ''; return; }
+                  const reader = new FileReader();
+                  reader.onload = event => setProofImage(event.target.result);
+                  reader.readAsDataURL(file);
+                }}
+                className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2 text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-100 file:px-3 file:py-1.5 file:text-[10px] file:font-black file:text-blue-700" />
+              {proofImage && <img src={proofImage} alt="Payment proof preview" className="mt-2 h-24 w-full rounded-xl border border-blue-100 object-cover" />}
             </div>
             <button type="submit" disabled={loading}
               className="w-full bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white text-xs font-black py-3.5 rounded-xl uppercase tracking-wider shadow-[0_4px_15px_rgba(59,130,246,0.3)] transition-all disabled:opacity-50">

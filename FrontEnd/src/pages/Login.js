@@ -44,7 +44,7 @@ export default function Login() {
   };
 
   return (
-    <div style={{
+    <div className="premium-page" style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #020510 0%, #0a0f2e 50%, #020510 100%)',
       display: 'flex',
@@ -71,7 +71,9 @@ export default function Login() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '28px', marginBottom: '14px',
             boxShadow: '0 0 30px rgba(0,180,255,0.15)'
-          }}>☁️</div>
+          }}>
+            <img src="/logo.png" alt="CloudNova" style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '14px' }} />
+          </div>
           <h1 style={{ color: '#fff', fontSize: '22px', fontWeight: '800', letterSpacing: '3px', margin: 0, background: 'linear-gradient(90deg, #00b4ff, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CLOUDNOVA</h1>
           <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px', marginTop: '4px', letterSpacing: '1px' }}>CLOUD MINING PLATFORM</p>
         </div>

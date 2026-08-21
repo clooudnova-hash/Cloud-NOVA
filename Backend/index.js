@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -14,14 +15,31 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '8mb' }));
+
+app.get('/api/market/btc', async (req, res) => {
+  try {
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+    if (!response.ok) return res.status(502).json({ message: 'Market price unavailable.' });
+    const data = await response.json();
+    const price = Number(data?.bitcoin?.usd);
+    if (!Number.isFinite(price)) return res.status(502).json({ message: 'Market price unavailable.' });
+    return res.status(200).json({ price });
+  } catch {
+    return res.status(502).json({ message: 'Market price unavailable.' });
+  }
+});
 
 // Serve pre-built React frontend
 const FRONTEND_BUILD = path.join(__dirname, '..', 'FrontEnd', 'build');
 app.use(express.static(FRONTEND_BUILD));
 
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'CloudNova2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET must be configured in production.');
+}
+const SIGNING_SECRET = JWT_SECRET || 'CloudNova-development-only';
 const isGmailAddress = email => /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@gmail\.com$/i.test(String(email || '').trim());
 const isAllowedLoginEmail = email => isGmailAddress(email) || String(email || '').trim().toLowerCase() === 'noor@cloudnova.com';
 
@@ -34,6 +52,36 @@ const couponVouchers = [];
 const bonusClaims = [];
 const emailOtpCache = [];
 const taskClaims = [];
+const stateFile = process.env.CLOUDNOVA_DATA_FILE || path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data'), 'cloudnova-state.json');
+const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims };
+
+const restoreState = () => {
+  try {
+    if (!fs.existsSync(stateFile)) return false;
+    const saved = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+    Object.entries(stateCollections).forEach(([name, collection]) => {
+      if (!Array.isArray(saved[name])) return;
+      collection.push(...saved[name]);
+    });
+    return true;
+  } catch (error) {
+    console.error('Persistent state could not be restored:', error.message);
+    return false;
+  }
+};
+
+const persistState = () => {
+  try {
+    fs.mkdirSync(path.dirname(stateFile), { recursive: true });
+    const temporaryFile = `${stateFile}.tmp`;
+    fs.writeFileSync(temporaryFile, JSON.stringify(stateCollections), 'utf8');
+    fs.renameSync(temporaryFile, stateFile);
+  } catch (error) {
+    console.error('Persistent state could not be saved:', error.message);
+  }
+};
+
+const restoredState = restoreState();
 const PROMO_MAX_FAILED_ATTEMPTS = 3;
 const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
 const MIN_DEPOSIT_AMOUNT = 10;
@@ -56,8 +104,16 @@ const VIP_THRESHOLDS = [
 ];
 
 const mockPasswordHash = bcrypt.hashSync('Admin@123', 10);
-users.push({ id: 'usr_mock1', username: 'noor', fullName: 'Noor Zaman', email: 'noor@cloudnova.com', password: mockPasswordHash, role: 'admin', myReferralCode: 'NOOR99', referredBy: '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
-wallets.push({ userId: 'usr_mock1', balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
+if (!restoredState && !users.some(user => user.email === 'noor@cloudnova.com')) {
+  users.push({ id: 'usr_mock1', username: 'noor', fullName: 'Noor Zaman', email: 'noor@cloudnova.com', password: mockPasswordHash, role: 'admin', myReferralCode: 'NOOR99', referredBy: '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
+  wallets.push({ userId: 'usr_mock1', balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
+}
+persistState();
+
+app.use((req, res, next) => {
+  res.on('finish', persistState);
+  next();
+});
 
 const findUpline = (referralCode) => users.find(user => user.myReferralCode === referralCode);
 
@@ -161,7 +217,7 @@ const verifyToken = (req, res, next) => {
   const token = req.headers['authorization'];
   if (!token) return res.status(403).json({ message: 'Access Denied: Missing Header Token!' });
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, SIGNING_SECRET);
     const user = users.find(item => item.id === req.user.id);
     if (!user) return res.status(401).json({ message: 'User account no longer exists.' });
     req.currentUser = user;
@@ -221,7 +277,7 @@ app.post('/api/auth/login', (req, res) => {
     if (!user || !bcrypt.compareSync(password, user.password)) return res.status(400).json({ message: 'Invalid Login Credentials!' });
     if (user.paused) return res.status(403).json({ message: 'This account is paused. Contact an administrator.' });
 
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: user.id, role: user.role }, SIGNING_SECRET, { expiresIn: '1d' });
     return res.status(200).json({ success: true, token, user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role } });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -280,10 +336,11 @@ app.post('/api/mining/collect', verifyToken, (req, res) => {
 app.post('/api/wallet/deposit', verifyToken, (req, res) => {
   try {
     if (!isWithinBusinessHours(false)) return res.status(400).json({ message: 'Deposits are accepted from 10:00 AM to 09:00 PM Pakistan time.' });
-    const { txid, network, amount } = req.body;
+    const { txid, network, amount, proofImage } = req.body;
     const depositAmount = parseFloat(amount);
     if (network !== 'EasyPaisa') return res.status(400).json({ message: 'Deposits are available only through EasyPaisa.' });
     if (!txid || !network || !Number.isFinite(depositAmount) || depositAmount < MIN_DEPOSIT_AMOUNT) return res.status(400).json({ message: `Minimum deposit amount is $${MIN_DEPOSIT_AMOUNT.toFixed(2)}.` });
+    if (!proofImage || !/^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(proofImage) || proofImage.length > 7 * 1024 * 1024) return res.status(400).json({ message: 'Please upload a valid payment screenshot up to 5 MB.' });
     if (transactions.find(t => t.txid === txid)) return res.status(400).json({ message: 'Transaction hash already exists!' });
 
     const taxAmount = Number((depositAmount * DEPOSIT_TAX_RATE).toFixed(4));
@@ -300,7 +357,8 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
       network,
       txid,
       status: 'pending',
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      proofImage
     });
     return res.status(201).json({ success: true, message: 'Deposit proof hash queued successfully', taxAmount, totalToPay, netAmount });
   } catch (err) { return res.status(500).json({ error: err.message }); }
@@ -421,6 +479,33 @@ app.post('/api/bonus/claim', verifyToken, (req, res) => {
 app.get('/api/admin/metrics', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Restricted administrative zone!' });
   return res.status(200).json({ totalUsers: users.length, systemFunds: wallets.reduce((s, w) => s + w.balance, 0), activeContracts: transactions.length });
+});
+
+app.get('/api/public/stats', (req, res) => {
+  const completedDeposits = transactions.filter(transaction => transaction.type === 'deposit' && transaction.status === 'completed');
+  const completedWithdrawals = transactions.filter(transaction => transaction.type === 'withdrawal' && transaction.status === 'completed');
+  const latestDeposit = completedDeposits.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  const latestWithdrawal = completedWithdrawals.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  const activities = transactions
+    .filter(transaction => (transaction.type === 'deposit' || transaction.type === 'withdrawal') && transaction.status === 'completed')
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 12)
+    .map(transaction => ({
+      type: transaction.type,
+      amount: Number(transaction.amount || 0),
+      date: transaction.date
+    }));
+  return res.status(200).json({
+    members: users.length,
+    deposits: completedDeposits.length,
+    depositedAmount: Number(completedDeposits.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0).toFixed(2)),
+    withdrawals: completedWithdrawals.length,
+    withdrawnAmount: Number(completedWithdrawals.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0).toFixed(2)),
+    latestDepositAmount: latestDeposit ? Number(latestDeposit.amount || 0) : null,
+    latestWithdrawalAmount: latestWithdrawal ? Number(latestWithdrawal.amount || 0) : null,
+    activities
+  });
 });
 
 app.get('/api/admin/transactions', verifyToken, (req, res) => {
@@ -660,12 +745,6 @@ app.post('/api/admin/task-claims/action', verifyToken, (req, res) => {
 // Socket.io chat relay
 io.on('connection', (socket) => {
   socket.on('sendMessage', (data) => { io.emit('receiveMessage', data); });
-});
-
-// Temporary: download full source zip
-app.get('/download-source', (req, res) => {
-  const zipPath = path.join(__dirname, '..', 'CloudNova_Full.zip');
-  res.download(zipPath, 'CloudNova_Full.zip');
 });
 
 // Catch-all: serve React frontend for any non-API route

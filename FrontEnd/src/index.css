@@ -2,8 +2,271 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+main,
+main > * {
+  min-width: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  transition: box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease, opacity 180ms ease;
+}
+
+button:not(:disabled):hover,
+a:hover {
+  transform: translateY(-1px);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(0, 210, 255, 0.28);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(0, 210, 255, 0.25);
+}
+
+main > div {
+  animation: cloudnovaPageReveal 420ms ease-out both;
+}
+
+.premium-page {
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  background-image: radial-gradient(circle at 8% 0%, rgba(59, 130, 246, 0.09), transparent 28%), radial-gradient(circle at 92% 18%, rgba(0, 210, 255, 0.07), transparent 24%) !important;
+}
+
+.premium-page::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 210, 255, 0.5), transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.premium-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+[class~="min-h-screen"][class~="bg-[#f5f8ff]"] {
+  background-image: radial-gradient(circle at 8% 0%, rgba(59, 130, 246, 0.09), transparent 28%), radial-gradient(circle at 92% 18%, rgba(0, 210, 255, 0.07), transparent 24%);
+}
+
+div.bg-gradient-to-r.from-\[\#3b82f6\].to-\[\#1d4ed8\] {
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.22) !important;
+}
+
+div.bg-white.rounded-xl,
+div.bg-white.rounded-2xl {
+  border-top: 2px solid rgba(59, 130, 246, 0.18) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+div.bg-white.rounded-xl:hover,
+div.bg-white.rounded-2xl:hover {
+  border-top-color: rgba(37, 99, 235, 0.42) !important;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.1) !important;
+}
+
+@keyframes cloudnovaPageReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cloudnovaNoticeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mining-rail {
+  position: absolute;
+  top: 35%;
+  width: 74px;
+  height: 2px;
+  opacity: 0.85;
+  background: linear-gradient(90deg, transparent, #60a5fa, #00d2ff, transparent);
+  box-shadow: 0 0 12px rgba(0, 210, 255, 0.65);
+  animation: miningRailPulse 2.4s ease-in-out infinite;
+}
+
+.mining-core {
+  animation: miningCoreFloat 4.8s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+.mining-core::after {
+  content: '';
+  position: absolute;
+  left: -70px;
+  bottom: -132px;
+  width: 140px;
+  height: 106px;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-top: 0;
+  transform: perspective(120px) rotateX(58deg);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.16);
+  animation: miningCoreScan 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.mining-core-base {
+  animation: miningBasePulse 2.8s ease-in-out infinite;
+}
+
+@keyframes miningCoreFloat {
+  0%, 100% { transform: translateY(2px) scale(0.98); filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4)); }
+  50% { transform: translateY(-5px) scale(1); filter: drop-shadow(0 16px 28px rgba(37,99,235,0.42)); }
+}
+
+@keyframes miningCoreScan {
+  0%, 100% { opacity: 0.2; transform: perspective(120px) rotateX(58deg) scaleX(0.82); }
+  50% { opacity: 0.78; transform: perspective(120px) rotateX(58deg) scaleX(1); }
+}
+
+@keyframes miningBasePulse {
+  0%, 100% { opacity: 0.55; box-shadow: 0 0 10px #3b82f6; }
+  50% { opacity: 1; box-shadow: 0 0 22px #00d2ff, 0 0 42px rgba(59,130,246,0.55); }
+}
+
+.mining-rail-left { left: calc(50% - 170px); transform: rotate(-18deg); }
+.mining-rail-right { right: calc(50% - 170px); transform: rotate(18deg); animation-delay: 0.7s; }
+
+@keyframes miningRailPulse {
+  0%, 100% { opacity: 0.28; transform: scaleX(0.72) rotate(-18deg); }
+  50% { opacity: 0.95; transform: scaleX(1) rotate(-18deg); }
+}
+
+.mining-rail-right { animation-name: miningRailPulseRight; }
+
+@keyframes miningRailPulseRight {
+  0%, 100% { opacity: 0.28; transform: scaleX(0.72) rotate(18deg); }
+  50% { opacity: 0.95; transform: scaleX(1) rotate(18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding: 8px 10px !important;
+    gap: 6px;
+  }
+
+  .app-brand {
+    gap: 6px !important;
+    min-width: 0;
+  }
+
+  .app-brand img {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .app-brand span {
+    font-size: 14px !important;
+    letter-spacing: 0.8px !important;
+  }
+
+  .app-auth-actions {
+    gap: 4px !important;
+    flex-shrink: 0;
+  }
+
+  .app-auth-actions button {
+    padding: 7px 8px !important;
+    font-size: 10px !important;
+    white-space: nowrap;
+  }
+
+  header {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  header > div:first-child span {
+    font-size: 16px !important;
+  }
+
+  header > div:last-child {
+    gap: 6px !important;
+  }
+
+  header button {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  [style*="padding: 24px 40px"],
+  [style*="padding: 20px 40px"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  [style*="gap: 60px"] {
+    gap: 24px !important;
+  }
+}
+
+@media (min-width: 641px) {
+  #root > div > main {
+    width: min(100%, 1180px);
+    margin-left: auto;
+    margin-right: auto;
+  }
 }

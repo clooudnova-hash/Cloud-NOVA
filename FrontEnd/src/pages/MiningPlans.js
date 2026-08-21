@@ -90,7 +90,7 @@ const MiningPlans = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fb] text-slate-800 pb-20 font-sans antialiased">
+    <div className="premium-page min-h-screen bg-[#f5f8ff] text-slate-800 pb-20 font-sans antialiased">
 
       {/* Lease Confirm Modal */}
       {confirmModal && (
@@ -150,26 +150,47 @@ const MiningPlans = () => {
       )}
 
       {/* Top Navbar */}
-      <div className="bg-[#070b19] px-4 py-3 flex justify-between items-center shadow-lg border-b border-slate-800/60 sticky top-0 z-50">
+      <div className="bg-[#0b1a50] px-4 py-2.5 flex justify-between items-center shadow-lg border-b border-white/10 sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-white/5 border border-blue-500/20 p-0.5">
+          <div className="w-[42px] h-[42px] rounded-full overflow-hidden bg-white/5 border-2 border-cyan-400/50 p-0.5 shadow-[0_0_12px_rgba(0,210,255,0.5)]">
             <img src="/logo.png" alt="CloudNova" className="w-full h-full object-contain" />
           </div>
-          <span className="text-xs font-black text-white uppercase tracking-wider">Cloud<span className="text-blue-400">Nova</span></span>
+          <span className="text-xl font-black text-white uppercase tracking-[0.1em]">Cloud<span className="text-cyan-300">Nova</span></span>
         </div>
         <div className="flex items-center gap-2 text-[11px] font-bold">
-          <button type="button" onClick={() => navigate('/login')} className="bg-slate-800/80 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700/50 active:scale-95 transition">Login</button>
-          <button type="button" onClick={() => navigate('/register')} className="bg-blue-600 text-white font-black px-3 py-1.5 rounded-lg active:scale-95 transition">Sign Up</button>
+          <button type="button" onClick={() => navigate('/login')} className="bg-white/10 text-white px-4 py-2 rounded-lg border border-white/15 active:scale-95 transition">Login</button>
+          <button type="button" onClick={() => navigate('/register')} className="bg-gradient-to-r from-[#00d2ff] to-[#9b51e0] text-slate-950 font-black px-4 py-2 rounded-lg shadow-[0_4px_12px_rgba(0,210,255,0.2)] active:scale-95 transition">Sign Up</button>
         </div>
       </div>
 
       {/* Sub-header */}
-      <div className="bg-gradient-to-r from-[#94c3f7] to-[#73aef5] px-4 pt-5 pb-8 shadow-sm">
-        <h1 className="text-lg font-black text-slate-900 tracking-tight">Mining Pools</h1>
-        <p className="text-[10px] text-slate-700 font-semibold mt-0.5">Select a plan to start earning daily income from cloud mining.</p>
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#0b1a50] via-[#153393] to-[#087f9b] px-4 pt-6 pb-10 text-white shadow-[0_12px_30px_rgba(11,26,80,0.25)]">
+        <div className="relative z-10 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">CloudNova marketplace</p>
+            <h1 className="text-2xl font-black tracking-tight mt-1">Mining Pools</h1>
+            <p className="text-[11px] text-blue-100 font-medium mt-1 max-w-[280px]">Choose a cloud machine and turn computing power into daily returns.</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-2xl font-black text-cyan-200">{plans.length}</p>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-blue-100">Available plans</p>
+          </div>
+        </div>
+        <div className="relative z-10 grid grid-cols-2 gap-2 mt-5 max-w-[360px]">
+          <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2">
+            <p className="text-[9px] uppercase tracking-wider text-blue-100">Starting from</p>
+            <p className="text-sm font-black text-white mt-0.5">$10.00</p>
+          </div>
+          <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2">
+            <p className="text-[9px] uppercase tracking-wider text-blue-100">Top return</p>
+            <p className="text-sm font-black text-amber-300 mt-0.5">$9.09 / day</p>
+          </div>
+        </div>
+        <div className="absolute -right-16 -bottom-24 h-52 w-52 rounded-full border border-cyan-200/20" />
+        <div className="absolute right-6 -bottom-20 h-40 w-40 rounded-full border border-white/10" />
       </div>
 
-      <div className="px-3 -mt-5 space-y-3">
+      <div className="relative z-20 px-3 -mt-5 space-y-3">
 
         {/* Alert */}
         {msg && (
@@ -179,10 +200,10 @@ const MiningPlans = () => {
         )}
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl p-1 flex shadow-sm border border-slate-100 text-xs font-bold">
+        <div className="bg-white rounded-xl p-1 flex shadow-[0_8px_22px_rgba(15,23,42,0.08)] border border-slate-200/80 text-xs font-bold">
           <button type="button" onClick={() => { setActiveTab('plans'); setSelectedCountry('All'); }}
-            className={`w-full text-center py-2.5 rounded-lg transition-all ${activeTab === 'plans' ? 'bg-[#1e88e5] text-white shadow-sm' : 'text-slate-500'}`}>
-            ✏️ Mining Plans
+            className={`w-full text-center py-2.5 rounded-lg transition-all ${activeTab === 'plans' ? 'bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]' : 'text-slate-500'}`}>
+            ⚡ Premium Mining Plans
           </button>
         </div>
 
@@ -199,7 +220,7 @@ const MiningPlans = () => {
         )}
 
         {/* Search */}
-        <div className="bg-white rounded-xl px-3 py-1 flex items-center shadow-sm border border-slate-100">
+        <div className="bg-white rounded-xl px-3 py-1 flex items-center shadow-[0_5px_16px_rgba(15,23,42,0.06)] border border-slate-200/80">
           <input type="text" placeholder="Search machine..." value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full bg-transparent text-xs text-slate-700 focus:outline-none py-1.5" />

@@ -106,7 +106,7 @@ export default function Register() {
   };
 
   return (
-    <div style={{
+    <div className="premium-page" style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #020510 0%, #0a0f2e 50%, #020510 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -126,7 +126,9 @@ export default function Register() {
             border: '1px solid rgba(0,180,255,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px',
             marginBottom: '14px', boxShadow: '0 0 30px rgba(0,180,255,0.15)'
-          }}>☁️</div>
+          }}>
+            <img src="/logo.png" alt="CloudNova" style={{ width: '48px', height: '48px', objectFit: 'contain', borderRadius: '14px' }} />
+          </div>
           <h1 style={{ color: '#fff', fontSize: '22px', fontWeight: '800', letterSpacing: '3px', margin: 0, background: 'linear-gradient(90deg, #00b4ff, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CLOUDNOVA</h1>
           <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px', marginTop: '4px', letterSpacing: '1px' }}>JOIN 180,000+ MINERS WORLDWIDE</p>
         </div>
@@ -202,7 +204,7 @@ export default function Register() {
 
             <Field label={<>Referral Code <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '400', textTransform: 'none' }}>(optional)</span></>} icon="🎁">
               <input type="text" name="referralCode" value={formData.referralCode} onChange={handleChange}
-                placeholder="e.g. NOOR99" readOnly={referralLocked} disabled={referralLocked} style={{ ...inputStyle, opacity: referralLocked ? 0.7 : 1, cursor: referralLocked ? 'not-allowed' : 'text' }}
+                placeholder="e.g. CloudNova" readOnly={referralLocked} disabled={referralLocked} style={{ ...inputStyle, opacity: referralLocked ? 0.7 : 1, cursor: referralLocked ? 'not-allowed' : 'text' }}
                 onFocus={focusOn} onBlur={focusOff} />
             </Field>
 

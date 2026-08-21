@@ -36,7 +36,7 @@ export default function Reports() {
   const statusColor = { pending: '#f59e0b', completed: '#10b981', rejected: '#ef4444' };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f8ff', fontFamily: 'Inter, -apple-system, sans-serif', paddingBottom: '100px' }}>
+    <div className="premium-page" style={{ minHeight: '100vh', background: '#f5f8ff', fontFamily: 'Inter, -apple-system, sans-serif', paddingBottom: '100px' }}>
 
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', margin: '12px 16px', padding: '20px', borderRadius: '20px', color: '#fff', boxShadow: '0 4px 20px rgba(59,130,246,0.3)' }}>

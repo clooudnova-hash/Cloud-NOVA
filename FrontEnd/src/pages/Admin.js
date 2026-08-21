@@ -135,7 +135,7 @@ export default function Admin() {
   const tabs = ['dashboard', 'transactions', 'users', 'bonus', 'tasks'];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#080c1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', padding: '0 0 40px' }}>
+    <div className="premium-page" style={{ minHeight: '100vh', background: '#080c1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', padding: '0 0 40px' }}>
 
       {/* Header */}
       <div style={{ background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -280,6 +280,7 @@ export default function Admin() {
                                     <div>{tx.txid}</div>
                                     {tx.type === 'withdrawal' && tx.accountName && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginTop: '3px' }}>Title: {tx.accountName}</div>}
                                     {tx.type === 'withdrawal' && tx.bankName && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginTop: '3px' }}>Bank: {tx.bankName}</div>}
+                                    {tx.type === 'deposit' && tx.proofImage && <a href={tx.proofImage} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '6px', color: '#67e8f9', fontSize: '10px', fontWeight: '800', textDecoration: 'none' }}><img src={tx.proofImage} alt="Payment proof" style={{ width: '34px', height: '34px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(103,232,249,0.5)' }} /> View proof</a>}
                                   </td>
                                   <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{new Date(tx.date).toLocaleString()}</td>
                                   <td style={{ padding: '10px 12px' }}>

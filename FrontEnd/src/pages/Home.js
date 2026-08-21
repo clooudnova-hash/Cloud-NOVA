@@ -21,9 +21,9 @@ export default function Home() {
   useEffect(() => {
     const loadBtcPrice = async () => {
       try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+        const response = await fetch('/api/market/btc');
         const data = await response.json();
-        const livePrice = Number(data?.bitcoin?.usd);
+        const livePrice = Number(data?.price);
         if (Number.isFinite(livePrice)) setBtcPrice(livePrice);
       } catch {
         // Keep the last known price if the market service is unavailable.
@@ -85,11 +85,11 @@ export default function Home() {
   }));
 
   return (
-    <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
+    <div className="premium-page" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
 
       {/* UPPER BLUE ZONE */}
       <div style={{ backgroundImage: 'linear-gradient(to bottom, #0b1a50 0%, #153393 100%)', padding: '24px 40px 40px 40px', color: '#ffffff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
           <div>
             <p style={{ color: '#ffb100', fontSize: '13px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
               Welcome, {vipLevel} Member — {userName}!
@@ -105,15 +105,40 @@ export default function Home() {
               </div>
             </div>
           </div>
+          <a
+            href="/CloudNova.apk"
+            download="CloudNova.apk"
+            aria-label="Download Cloud Nova APK"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              minWidth: '116px',
+              padding: '7px 12px',
+              border: '1px solid rgba(255,255,255,0.16)',
+              borderRadius: '10px',
+              background: 'rgba(7, 15, 52, 0.45)',
+              color: '#ffffff',
+              textDecoration: 'none',
+              lineHeight: 1.1,
+              boxSizing: 'border-box',
+            }}
+          >
+            <span style={{ color: '#44d1ff', fontSize: '22px', lineHeight: 1 }}>▶</span>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <small style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.3px', opacity: 0.8 }}>GET IT ON</small>
+              <strong style={{ fontSize: '12px', fontWeight: '800', whiteSpace: 'nowrap' }}>Cloud Nova</strong>
+            </span>
+          </a>
         </div>
 
         {/* Pyramid and per-miner income timers */}
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '280px', position: 'relative', margin: '12px 0 8px' }}>
-          <div style={{ position: 'relative', width: '0', height: '0', borderLeft: '95px solid transparent', borderRight: '95px solid transparent', borderBottom: '150px solid rgba(30,64,175,0.85)', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.4))', zIndex: 5 }}>
-            <div style={{ position: 'absolute', top: '0', left: '0', width: '1px', height: '150px', backgroundColor: 'rgba(255,255,255,0.25)' }}></div>
-            <div style={{ position: 'absolute', bottom: '-150px', left: '-65px', width: '130px', height: '4px', backgroundColor: '#60a5fa', boxShadow: '0 0 10px #3b82f6' }}></div>
+          <div className="mining-core" style={{ position: 'relative', width: '0', height: '0', borderLeft: '95px solid transparent', borderRight: '95px solid transparent', borderBottom: '150px solid rgba(30,64,175,0.85)', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.4))', zIndex: 5 }}>
+            <div className="mining-core-base" style={{ position: 'absolute', bottom: '-150px', left: '-65px', width: '130px', height: '4px', backgroundColor: '#60a5fa', boxShadow: '0 0 10px #3b82f6' }}></div>
           </div>
-          <div style={{ position: 'absolute', top: '91px', width: '160px', height: '40px', border: '2px solid rgba(255,255,255,0.15)', borderRadius: '50%', zIndex: 2, boxShadow: '0 0 15px rgba(59,130,246,0.2)' }}></div>
+          <div className="mining-rail mining-rail-left" />
+          <div className="mining-rail mining-rail-right" />
           {incomeNodes.map((contract, index) => {
             const angle = (index / incomeNodes.length) * Math.PI * 2 - Math.PI / 2;
             const left = 50 + Math.cos(angle) * 39;

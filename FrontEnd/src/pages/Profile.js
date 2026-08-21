@@ -44,7 +44,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
+    <div className="premium-page min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
 
       {/* Logout Confirm Modal */}
       {showLogoutConfirm && (
