@@ -186,7 +186,7 @@ export default function Home() {
             <h2 style={{ margin: '4px 0 0', fontSize: '16px', fontWeight: '900' }}>Cloud Video</h2>
           </div>
           <div style={{ position: 'relative' }}>
-            <video src="/cloudvideo.mp4" loop controls playsInline preload="metadata" style={{ display: 'block', width: '100%', maxHeight: '360px', objectFit: 'cover', backgroundColor: '#020617' }} />
+            <video src="/cloudvideo.mp4" loop controls playsInline preload="metadata" style={{ display: 'block', width: '100%', height: 'clamp(190px, 42vw, 360px)', objectFit: 'cover', backgroundColor: '#020617' }} />
           </div>
         </div>
       </section>

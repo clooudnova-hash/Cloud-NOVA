@@ -8,6 +8,7 @@ body,
   width: 100%;
   min-width: 0;
   min-height: 100%;
+  overflow-anchor: none;
 }
 
 body {
