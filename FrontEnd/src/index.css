@@ -137,6 +137,10 @@ main > div {
   letter-spacing: 1px;
 }
 
+.home-summary-row {
+  position: relative;
+}
+
 [class~="min-h-screen"][class~="bg-[#f5f8ff]"] {
   background-image: radial-gradient(circle at 8% 0%, rgba(59, 130, 246, 0.09), transparent 28%), radial-gradient(circle at 92% 18%, rgba(0, 210, 255, 0.07), transparent 24%);
 }
@@ -245,6 +249,22 @@ div.bg-white.rounded-2xl:hover {
 }
 
 @media (max-width: 640px) {
+  .home-top-zone {
+    padding: 18px 14px 32px !important;
+  }
+
+  .home-summary-row {
+    display: block !important;
+    padding-right: 154px;
+    min-height: 86px;
+  }
+
+  .home-summary-row .home-apk-download {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
   .auth-page {
     padding: 24px 10px max(24px, env(safe-area-inset-bottom)) !important;
   }

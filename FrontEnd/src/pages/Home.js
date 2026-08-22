@@ -89,8 +89,8 @@ export default function Home() {
     <div className="premium-page" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
 
       {/* UPPER BLUE ZONE */}
-      <div style={{ backgroundImage: 'linear-gradient(to bottom, #0b1a50 0%, #153393 100%)', padding: '24px 40px 40px 40px', color: '#ffffff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
+      <div className="home-top-zone" style={{ backgroundImage: 'linear-gradient(to bottom, #0b1a50 0%, #153393 100%)', padding: '24px 40px 40px 40px', color: '#ffffff' }}>
+        <div className="home-summary-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
           <div>
             <p style={{ color: '#ffb100', fontSize: '13px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
               Welcome, {vipLevel} Member — {userName}!
