@@ -13,6 +13,7 @@ const Wallet = () => {
   const [message, setMessage] = useState('');
   const [msgType, setMsgType] = useState(''); // 'success' | 'error'
   const [businessHoursNotice, setBusinessHoursNotice] = useState('');
+  const [transactionNotice, setTransactionNotice] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [balance, setBalance] = useState(null);
 
@@ -66,6 +67,11 @@ const Wallet = () => {
       : 'Deposits are closed. Deposit hours are every day, 10:00 AM to 09:00 PM Pakistan time.');
   };
 
+  const showTransactionNotice = (type, message) => {
+    const labels = { pending: 'Request Pending', rejected: 'Request Rejected', success: 'Request Submitted' };
+    setTransactionNotice({ type, title: labels[type] || 'Transaction Update', message });
+  };
+
   const handleDeposit = async (e) => {
     e.preventDefault();
     if (!isWithinBusinessHours(false)) { showBusinessHours(false); return; }
@@ -82,9 +88,9 @@ const Wallet = () => {
         body: JSON.stringify({ txid, network: paymentMethod, amount: parseFloat(amount), proofImage })
       });
       const data = await res.json();
-      if (res.ok) { showMsg('✅ ' + data.message, 'success'); setAmount(''); setTxid(''); setProofImage(''); fetchData(); }
-      else { showMsg('❌ ' + data.message, 'error'); }
-    } catch { showMsg('❌ Network error. Try again.', 'error'); }
+      if (res.ok) { showTransactionNotice('pending', data.message || 'Your deposit is waiting for admin approval.'); setAmount(''); setTxid(''); setProofImage(''); fetchData(); }
+      else { showTransactionNotice('rejected', data.message || 'The deposit request was rejected.'); }
+    } catch { showTransactionNotice('rejected', 'Network error. Your deposit request was not submitted.'); }
     finally { setLoading(false); }
   };
 
@@ -92,8 +98,10 @@ const Wallet = () => {
     e.preventDefault();
     if (!isWithinBusinessHours(true)) { showBusinessHours(true); return; }
     if (!token) { showMsg('Please login first.', 'error'); return; }
+    if (Number.parseFloat(balance || '0') <= 0) { showTransactionNotice('rejected', 'Your wallet balance is $0.00. Add funds before requesting a withdrawal.'); return; }
     if (!amount || !accountNumber || !accountName) { showMsg('Please fill all fields.', 'error'); return; }
     if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 3) { showMsg('Minimum withdrawal amount is $3.00.', 'error'); return; }
+    if (parseFloat(amount) > Number.parseFloat(balance || '0')) { showTransactionNotice('rejected', 'Withdrawal amount cannot be greater than your available balance.'); return; }
     setLoading(true);
     try {
       const res = await fetch('/api/wallet/withdraw', {
@@ -102,9 +110,9 @@ const Wallet = () => {
         body: JSON.stringify({ address: accountNumber, accountName, bankName, network: paymentMethod, amount: parseFloat(amount) })
       });
       const data = await res.json();
-      if (res.ok) { showMsg('✅ ' + data.message, 'success'); setAmount(''); setAccountNumber(''); setAccountName(''); setBankName(''); fetchData(); }
-      else { showMsg('❌ ' + data.message, 'error'); }
-    } catch { showMsg('❌ Network error. Try again.', 'error'); }
+      if (res.ok) { showTransactionNotice('pending', data.message || 'Your withdrawal is waiting for admin approval.'); setAmount(''); setAccountNumber(''); setAccountName(''); setBankName(''); fetchData(); }
+      else { showTransactionNotice('rejected', data.message || 'The withdrawal request was rejected.'); }
+    } catch { showTransactionNotice('rejected', 'Network error. Your withdrawal request was not submitted.'); }
     finally { setLoading(false); }
   };
 
@@ -118,6 +126,17 @@ const Wallet = () => {
             <h3 style={{ margin: '0 0 8px', color: '#1e293b', fontSize: '16px', fontWeight: '900' }}>Business Hours Closed</h3>
             <p style={{ margin: '0 0 18px', color: '#64748b', fontSize: '12px', lineHeight: 1.55 }}>{businessHoursNotice}</p>
             <button type="button" onClick={() => setBusinessHoursNotice('')} style={{ width: '100%', padding: '11px', border: 0, borderRadius: '10px', background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: '#fff', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}>Okay</button>
+          </div>
+        </div>
+      )}
+
+      {transactionNotice && (
+        <div role="dialog" aria-modal="true" aria-label="Transaction status" style={{ position: 'fixed', inset: 0, zIndex: 1001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(15,23,42,0.62)' }}>
+          <div style={{ width: '100%', maxWidth: '360px', padding: '24px 20px', borderRadius: '18px', background: '#fff', textAlign: 'center', boxShadow: '0 20px 60px rgba(15,23,42,0.28)' }}>
+            <div style={{ fontSize: '34px', marginBottom: '8px' }}>{transactionNotice.type === 'pending' ? '⏳' : transactionNotice.type === 'rejected' ? '❌' : '✅'}</div>
+            <h3 style={{ margin: '0 0 8px', color: '#1e293b', fontSize: '16px', fontWeight: '900' }}>{transactionNotice.title}</h3>
+            <p style={{ margin: '0 0 18px', color: '#64748b', fontSize: '12px', lineHeight: 1.55 }}>{transactionNotice.message}</p>
+            <button type="button" onClick={() => setTransactionNotice(null)} style={{ width: '100%', padding: '11px', border: 0, borderRadius: '10px', background: transactionNotice.type === 'rejected' ? '#ef4444' : 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: '#fff', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}>Okay</button>
           </div>
         </div>
       )}
