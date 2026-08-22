@@ -12,6 +12,7 @@ const Wallet = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [msgType, setMsgType] = useState(''); // 'success' | 'error'
+  const [businessHoursNotice, setBusinessHoursNotice] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [balance, setBalance] = useState(null);
 
@@ -51,8 +52,23 @@ const Wallet = () => {
     setTimeout(() => setMessage(''), 4000);
   };
 
+  const isWithinBusinessHours = withdrawalsOnly => {
+    const now = new Date();
+    const pakistanTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+    const hour = pakistanTime.getHours();
+    const weekday = pakistanTime.getDay();
+    return hour >= 10 && hour < 21 && (!withdrawalsOnly || (weekday >= 1 && weekday <= 5));
+  };
+
+  const showBusinessHours = withdrawalsOnly => {
+    setBusinessHoursNotice(withdrawalsOnly
+      ? 'Withdrawals are closed. Withdrawal hours are Monday to Friday, 10:00 AM to 09:00 PM Pakistan time.'
+      : 'Deposits are closed. Deposit hours are every day, 10:00 AM to 09:00 PM Pakistan time.');
+  };
+
   const handleDeposit = async (e) => {
     e.preventDefault();
+    if (!isWithinBusinessHours(false)) { showBusinessHours(false); return; }
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (!amount) { showMsg('Please enter amount.', 'error'); return; }
     if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 10) { showMsg('Minimum deposit amount is $10.00.', 'error'); return; }
@@ -74,6 +90,7 @@ const Wallet = () => {
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
+    if (!isWithinBusinessHours(true)) { showBusinessHours(true); return; }
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (!amount || !accountNumber || !accountName) { showMsg('Please fill all fields.', 'error'); return; }
     if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 3) { showMsg('Minimum withdrawal amount is $3.00.', 'error'); return; }
@@ -93,6 +110,17 @@ const Wallet = () => {
 
   return (
     <div className="premium-page min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
+
+      {businessHoursNotice && (
+        <div role="dialog" aria-modal="true" aria-label="Business hours notice" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(15,23,42,0.62)' }}>
+          <div style={{ width: '100%', maxWidth: '360px', padding: '24px 20px', borderRadius: '18px', background: '#fff', textAlign: 'center', boxShadow: '0 20px 60px rgba(15,23,42,0.28)' }}>
+            <div style={{ fontSize: '34px', marginBottom: '8px' }}>🕒</div>
+            <h3 style={{ margin: '0 0 8px', color: '#1e293b', fontSize: '16px', fontWeight: '900' }}>Business Hours Closed</h3>
+            <p style={{ margin: '0 0 18px', color: '#64748b', fontSize: '12px', lineHeight: 1.55 }}>{businessHoursNotice}</p>
+            <button type="button" onClick={() => setBusinessHoursNotice('')} style={{ width: '100%', padding: '11px', border: 0, borderRadius: '10px', background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', color: '#fff', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}>Okay</button>
+          </div>
+        </div>
+      )}
 
       {/* Top Balance Card */}
       <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">

@@ -39,6 +39,7 @@ export default function Admin() {
   const [userSearch, setUserSearch] = useState('');
   const [txSearch, setTxSearch] = useState('');
   const [txType, setTxType] = useState('all');
+  const [proofPreview, setProofPreview] = useState(null);
 
   const userRole = localStorage.getItem('userRole') || '';
 
@@ -136,6 +137,15 @@ export default function Admin() {
 
   return (
     <div className="premium-page" style={{ minHeight: '100vh', background: '#080c1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', padding: '0 0 40px' }}>
+
+      {proofPreview && (
+        <div role="dialog" aria-modal="true" aria-label="Payment proof preview" onClick={() => setProofPreview(null)} style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.82)' }}>
+          <div onClick={event => event.stopPropagation()} style={{ position: 'relative', maxWidth: 'min(92vw, 720px)', maxHeight: '90vh', padding: '12px', borderRadius: '14px', background: '#111827', border: '1px solid rgba(103,232,249,0.35)' }}>
+            <button type="button" aria-label="Close payment proof" onClick={() => setProofPreview(null)} style={{ position: 'absolute', top: '-12px', right: '-12px', width: '32px', height: '32px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', background: '#1e293b', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>×</button>
+            <img src={proofPreview} alt="Payment proof" style={{ display: 'block', maxWidth: 'min(88vw, 680px)', maxHeight: '84vh', objectFit: 'contain', borderRadius: '8px' }} />
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -280,7 +290,7 @@ export default function Admin() {
                                     <div>{tx.txid}</div>
                                     {tx.type === 'withdrawal' && tx.accountName && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginTop: '3px' }}>Title: {tx.accountName}</div>}
                                     {tx.type === 'withdrawal' && tx.bankName && <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', marginTop: '3px' }}>Bank: {tx.bankName}</div>}
-                                    {tx.type === 'deposit' && tx.proofImage && <a href={tx.proofImage} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '6px', color: '#67e8f9', fontSize: '10px', fontWeight: '800', textDecoration: 'none' }}><img src={tx.proofImage} alt="Payment proof" style={{ width: '34px', height: '34px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(103,232,249,0.5)' }} /> View proof</a>}
+                                    {tx.type === 'deposit' && tx.proofImage && <button type="button" onClick={() => setProofPreview(tx.proofImage)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '6px', padding: 0, border: 0, background: 'transparent', color: '#67e8f9', fontSize: '10px', fontWeight: '800', cursor: 'pointer' }}><img src={tx.proofImage} alt="Payment proof" style={{ width: '34px', height: '34px', objectFit: 'cover', borderRadius: '6px', border: '1px solid rgba(103,232,249,0.5)' }} /> View proof</button>}
                                   </td>
                                   <td style={{ padding: '10px 12px', color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{new Date(tx.date).toLocaleString()}</td>
                                   <td style={{ padding: '10px 12px' }}>

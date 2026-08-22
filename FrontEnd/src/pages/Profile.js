@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download } from 'lucide-react';
 
+const publicAppUrl = (process.env.REACT_APP_PUBLIC_APP_URL || window.location.origin).replace(/\/$/, '');
+
 const Profile = () => {
   const navigate = useNavigate();
   const [showBonus, setShowBonus] = useState(false);
@@ -29,6 +31,7 @@ const Profile = () => {
   const hashrate = dashboard?.effectiveHashrate ?? 0;
   const teamCounts = (dashboard?.team || []).map(level => level.length);
   const income = dashboard?.incomeSummary || {};
+  const inviteUrl = `${publicAppUrl}/signup?ref=${encodeURIComponent(referralCode)}`;
 
   const handleLogout = () => setShowLogoutConfirm(true);
 
@@ -168,9 +171,9 @@ const Profile = () => {
             <div className="space-y-1.5">
               <label className="text-[10px] text-slate-400 font-bold uppercase block">Full Invite URL</label>
               <div className="flex gap-2">
-                <input type="text" readOnly value={`${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`}
+                <input type="text" readOnly value={inviteUrl}
                   className="w-full bg-[#f8fafc] border rounded-xl p-2.5 text-[10px] text-slate-600 font-mono focus:outline-none font-bold" />
-                <button type="button" onClick={() => copyToClipboard(`${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`, 'Invite URL')}
+                <button type="button" onClick={() => copyToClipboard(inviteUrl, 'Invite URL')}
                   className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white text-[10px] font-black px-4 rounded-xl shadow-md uppercase whitespace-nowrap">Copy</button>
               </div>
             </div>
