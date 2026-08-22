@@ -4,6 +4,15 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+const apiBaseUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
+const nativeFetch = window.fetch.bind(window);
+window.fetch = (input, init) => {
+  if (typeof input === 'string' && input.startsWith('/api/')) {
+    return nativeFetch(`${apiBaseUrl}${input}`, init);
+  }
+  return nativeFetch(input, init);
+};
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

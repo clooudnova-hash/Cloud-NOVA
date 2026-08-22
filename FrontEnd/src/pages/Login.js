@@ -44,7 +44,7 @@ export default function Login() {
   };
 
   return (
-    <div className="premium-page" style={{
+    <div className="premium-page auth-page" style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #020510 0%, #0a0f2e 50%, #020510 100%)',
       display: 'flex',
@@ -60,7 +60,7 @@ export default function Login() {
       <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(0,180,255,0.08) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '-10%', right: '-5%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(120,40,255,0.07) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
 
-      <div style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1 }}>
+      <div className="auth-content" style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1 }}>
 
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
@@ -79,7 +79,7 @@ export default function Login() {
         </div>
 
         {/* Card */}
-        <div style={{
+        <div className="auth-card" style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '24px',

@@ -96,6 +96,47 @@ main > div {
   z-index: 1;
 }
 
+.auth-page {
+  min-height: 100dvh !important;
+  overflow-y: auto !important;
+  align-items: flex-start !important;
+  padding-top: max(24px, env(safe-area-inset-top)) !important;
+  padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+}
+
+.auth-content {
+  margin: auto 0;
+}
+
+.auth-card {
+  width: 100%;
+}
+
+.profile-apk-download {
+  background: linear-gradient(135deg, #0b1a50, #153393 58%, #2563eb);
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  box-shadow: 0 8px 22px rgba(29, 78, 216, 0.2), inset 0 1px 0 rgba(255,255,255,0.14);
+}
+
+.profile-apk-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #00d2ff, #2563eb);
+  box-shadow: 0 3px 10px rgba(0, 210, 255, 0.3);
+}
+
+.profile-apk-label {
+  display: block;
+  margin-bottom: 2px;
+  color: #67e8f9;
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
 [class~="min-h-screen"][class~="bg-[#f5f8ff]"] {
   background-image: radial-gradient(circle at 8% 0%, rgba(59, 130, 246, 0.09), transparent 28%), radial-gradient(circle at 92% 18%, rgba(0, 210, 255, 0.07), transparent 24%);
 }
@@ -204,6 +245,19 @@ div.bg-white.rounded-2xl:hover {
 }
 
 @media (max-width: 640px) {
+  .auth-page {
+    padding: 24px 10px max(24px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .auth-card {
+    padding: 26px 18px !important;
+    border-radius: 20px !important;
+  }
+
+  .auth-content {
+    max-width: 440px !important;
+  }
+
   .app-header {
     padding: 8px 10px !important;
     gap: 6px;
@@ -262,6 +316,7 @@ div.bg-white.rounded-2xl:hover {
   [style*="gap: 60px"] {
     gap: 24px !important;
   }
+
 }
 
 @media (min-width: 641px) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Download } from 'lucide-react';
 
 export default function Home() {
   const [btcPrice, setBtcPrice] = useState(89878.44);
@@ -108,26 +109,30 @@ export default function Home() {
           <a
             href="/CloudNova.apk"
             download="CloudNova.apk"
+            className="home-apk-download"
             aria-label="Download Cloud Nova APK"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              minWidth: '116px',
-              padding: '7px 12px',
-              border: '1px solid rgba(255,255,255,0.16)',
-              borderRadius: '10px',
-              background: 'rgba(7, 15, 52, 0.45)',
+              minWidth: '142px',
+              padding: '8px 11px',
+              border: '1px solid rgba(103,232,249,0.5)',
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, rgba(0,210,255,0.16), rgba(21,51,147,0.9) 45%, rgba(76,29,149,0.82))',
               color: '#ffffff',
               textDecoration: 'none',
               lineHeight: 1.1,
               boxSizing: 'border-box',
+              boxShadow: '0 8px 24px rgba(0,210,255,0.2), 0 4px 12px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.2)',
             }}
           >
-            <span style={{ color: '#44d1ff', fontSize: '22px', lineHeight: 1 }}>▶</span>
+            <span style={{ width: '29px', height: '29px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9px', background: 'linear-gradient(135deg, #67e8f9, #2563eb)', color: '#ffffff', boxShadow: '0 0 16px rgba(0,210,255,0.55)', flexShrink: 0 }}>
+              <Download size={15} strokeWidth={2.7} aria-hidden="true" />
+            </span>
             <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <small style={{ fontSize: '7px', fontWeight: '700', letterSpacing: '0.3px', opacity: 0.8 }}>GET IT ON</small>
-              <strong style={{ fontSize: '12px', fontWeight: '800', whiteSpace: 'nowrap' }}>Cloud Nova</strong>
+              <small style={{ fontSize: '7px', fontWeight: '900', letterSpacing: '0.9px', color: '#a5f3fc' }}>GET THE APP</small>
+              <strong style={{ maxWidth: '94px', fontSize: '10px', lineHeight: 1.15, fontWeight: '900' }}>Download CloudNova APK</strong>
             </span>
           </a>
         </div>
