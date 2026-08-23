@@ -605,7 +605,7 @@ app.get('/api/admin/users', verifyToken, (req, res) => {
     const vip = syncVipLevel(u);
     const w = wallets.find(wl => wl.userId === u.id) || {};
     const upline = users.find(user => user.id === u.referredBy);
-    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0 };
+    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0 };
   });
   return res.status(200).json(result);
 });
@@ -617,13 +617,14 @@ app.post('/api/admin/users/create', verifyToken, (req, res) => {
     const normalizedEmail = String(email || '').toLowerCase().trim();
     if (!fullName || !isGmailAddress(normalizedEmail) || !password || password.length < 6) return res.status(400).json({ message: 'Name, valid Gmail and password of at least 6 characters are required.' });
     if (users.some(user => user.email === normalizedEmail)) return res.status(400).json({ message: 'This email is already registered.' });
-    const upline = referralCode ? findUpline(String(referralCode).trim()) : null;
+    const normalizedReferralCode = String(referralCode || '').trim().toUpperCase();
+    const upline = normalizedReferralCode ? findUpline(normalizedReferralCode) : null;
     const newUserId = 'usr_' + Math.random().toString(36).substring(2, 9);
     const usernameBase = normalizedEmail.split('@')[0];
     const username = users.some(user => user.username === usernameBase) ? `${usernameBase}_${Math.random().toString(36).substring(2, 6)}` : usernameBase;
     users.push({ id: newUserId, username, fullName: String(fullName).trim(), email: normalizedEmail, password: bcrypt.hashSync(password, 10), role: 'user', myReferralCode: Math.random().toString(36).substring(2, 8).toUpperCase(), referredBy: upline ? upline.id : '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
     wallets.push({ userId: newUserId, balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
-    return res.status(201).json({ success: true, message: 'User created successfully.' });
+    return res.status(201).json({ success: true, message: `User created. Sponsor referral ${upline ? upline.myReferralCode : 'not assigned'}; user's own referral code is ${users[users.length - 1].myReferralCode}.` });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 

@@ -382,7 +382,7 @@ export default function Admin() {
             <div style={{ ...card, display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
               <strong style={{ color: '#fff', fontSize: '12px' }}>Create User</strong>
               {[
-                ['fullName', 'Full name'], ['email', 'Gmail address'], ['password', 'Password'], ['referralCode', 'Referral code (optional)']
+                    ['fullName', 'Full name'], ['email', 'Gmail address'], ['password', 'Password'], ['referralCode', 'Sponsor referral code (optional)']
               ].map(([field, placeholder]) => <input key={field} type={field === 'password' ? 'password' : 'text'} placeholder={placeholder} value={newUser[field]} onChange={e => setNewUser(prev => ({ ...prev, [field]: e.target.value }))} style={{ flex: '1 1 150px', minWidth: '130px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', outline: 'none' }} />)}
               <button onClick={createUser} disabled={loading} style={btn('#10b981')}>Create</button>
             </div>
@@ -433,7 +433,7 @@ export default function Admin() {
                   <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
                     <span>Username: <strong style={{ color: '#fff' }}>{u.username || '—'}</strong></span>
                     <span>Referral Code: <strong style={{ color: '#a78bfa' }}>{u.myReferralCode}</strong></span>
-                    <span>Referred By (upline): <strong style={{ color: '#fbbf24' }}>{u.referredByUser ? `${u.referredByUser.username} (${u.referredBy})` : 'No upline'}</strong></span>
+                    <span>Referred By (sponsor): <strong style={{ color: '#fbbf24' }}>{u.referredByUser ? `${u.referredByUser.username} (${u.referredByCode || u.referredBy})` : 'No upline'}</strong></span>
                     <span>ID: <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)' }}>{u.id}</span></span>
                   </div>
 
