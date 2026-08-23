@@ -7,6 +7,7 @@ const fs = require('fs');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Pool } = require('pg');
 
 const { Server } = require('socket.io');
 
@@ -54,6 +55,7 @@ const emailOtpCache = [];
 const taskClaims = [];
 const stateFile = process.env.CLOUDNOVA_DATA_FILE || path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data'), 'cloudnova-state.json');
 const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims };
+const database = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 const restoreState = () => {
   try {
@@ -70,7 +72,7 @@ const restoreState = () => {
   }
 };
 
-const persistState = () => {
+const saveFileState = () => {
   try {
     fs.mkdirSync(path.dirname(stateFile), { recursive: true });
     const temporaryFile = `${stateFile}.tmp`;
@@ -81,7 +83,45 @@ const persistState = () => {
   }
 };
 
-const restoredState = restoreState();
+const applyState = saved => {
+  Object.entries(stateCollections).forEach(([name, collection]) => {
+    collection.length = 0;
+    if (Array.isArray(saved[name])) collection.push(...saved[name]);
+  });
+};
+
+const restoreDatabaseState = async () => {
+  await database.query(`
+    CREATE TABLE IF NOT EXISTS cloudnova_state (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      state JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  const result = await database.query('SELECT state FROM cloudnova_state WHERE id = 1');
+  if (!result.rows[0]) return false;
+  applyState(result.rows[0].state);
+  return true;
+};
+
+let persistQueue = Promise.resolve();
+const persistState = () => {
+  persistQueue = persistQueue.then(async () => {
+    if (!database) {
+      saveFileState();
+      return;
+    }
+    await database.query(
+      `INSERT INTO cloudnova_state (id, state, updated_at)
+       VALUES (1, $1::jsonb, CURRENT_TIMESTAMP)
+       ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, updated_at = CURRENT_TIMESTAMP`,
+      [JSON.stringify(stateCollections)]
+    );
+  }).catch(error => console.error('Persistent state could not be saved:', error.message));
+  return persistQueue;
+};
+
+let restoredState = false;
 const PROMO_MAX_FAILED_ATTEMPTS = 3;
 const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
 const MIN_DEPOSIT_AMOUNT = 10;
@@ -104,11 +144,15 @@ const VIP_THRESHOLDS = [
 ];
 
 const mockPasswordHash = bcrypt.hashSync('Admin@123', 10);
-if (!restoredState && !users.some(user => user.email === 'noor@cloudnova.com')) {
-  users.push({ id: 'usr_mock1', username: 'noor', fullName: 'Noor Zaman', email: 'noor@cloudnova.com', password: mockPasswordHash, role: 'admin', myReferralCode: 'NOOR99', referredBy: '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
-  wallets.push({ userId: 'usr_mock1', balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
-}
-persistState();
+const initializeState = async () => {
+  restoredState = database ? await restoreDatabaseState() : restoreState();
+  if (database && !restoredState) restoredState = restoreState();
+  if (!restoredState && !users.some(user => user.email === 'noor@cloudnova.com')) {
+    users.push({ id: 'usr_mock1', username: 'noor', fullName: 'Noor Zaman', email: 'noor@cloudnova.com', password: mockPasswordHash, role: 'admin', myReferralCode: 'NOOR99', referredBy: '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
+    wallets.push({ userId: 'usr_mock1', balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
+  }
+  await persistState();
+};
 
 app.use((req, res, next) => {
   res.on('finish', persistState);
@@ -752,6 +796,11 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(FRONTEND_BUILD, 'index.html'));
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`=========================================\n🚀 CLOUDNOVA SERVER LIVE ON PORT: ${PORT}\n=========================================`);
-});
+initializeState()
+  .then(() => server.listen(PORT, '0.0.0.0', () => {
+    console.log(`=========================================\n🚀 CLOUDNOVA SERVER LIVE ON PORT: ${PORT}\n=========================================`);
+  }))
+  .catch(error => {
+    console.error('CloudNova could not initialize persistent storage:', error.message);
+    process.exitCode = 1;
+  });
