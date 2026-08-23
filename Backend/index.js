@@ -232,7 +232,7 @@ const syncVipLevel = (user) => {
     .filter(transaction => transaction.userId === user.id && transaction.type === 'deposit' && transaction.status === 'completed')
     .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
   const matchedLevel = VIP_THRESHOLDS.find(threshold => completedDeposits >= threshold.minimumDeposit);
-  user.vipLevel = matchedLevel ? matchedLevel.level : 'Bronze';
+  user.vipLevel = user.vipOverride || (matchedLevel ? matchedLevel.level : 'Bronze');
   return { vipLevel: user.vipLevel, accumulatedDeposit: Number(completedDeposits.toFixed(2)) };
 };
 
@@ -719,12 +719,14 @@ app.post('/api/admin/users/adjust-balance', verifyToken, (req, res) => {
 app.post('/api/admin/users/set-vip', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
-    const { userId } = req.body;
+    const { userId, vipLevel } = req.body;
     if (!userId) return res.status(400).json({ message: 'userId is required' });
     const user = users.find(u => u.id === userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
+    if (vipLevel !== 'Auto' && !['Bronze', 'LV1', 'LV2', 'LV3'].includes(vipLevel)) return res.status(400).json({ message: 'Invalid VIP level.' });
+    user.vipOverride = vipLevel === 'Auto' ? null : vipLevel;
     const vip = syncVipLevel(user);
-    return res.status(200).json({ success: true, message: `VIP level is deposit-based: ${vip.vipLevel}`, ...vip });
+    return res.status(200).json({ success: true, message: vipLevel === 'Auto' ? `VIP level returned to automatic mode: ${vip.vipLevel}` : `VIP level manually set to ${vip.vipLevel}`, ...vip });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 

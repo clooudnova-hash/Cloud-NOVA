@@ -44,6 +44,7 @@ export default function Admin() {
   const [referralCode, setReferralCode] = useState({});
   const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '', referralCode: '' });
   const [resetPassword, setResetPassword] = useState({});
+  const [vipSelection, setVipSelection] = useState({});
 
   const userRole = localStorage.getItem('userRole') || '';
 
@@ -176,6 +177,15 @@ export default function Admin() {
     const res = await api('/api/admin/users/reset-password', { method: 'POST', body: { userId, newPassword } });
     setMsg(res.message || res.error);
     setResetPassword(prev => ({ ...prev, [userId]: '' }));
+    setLoading(false);
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const updateVip = async (userId) => {
+    setLoading(true);
+    const res = await api('/api/admin/users/set-vip', { method: 'POST', body: { userId, vipLevel: vipSelection[userId] || 'Auto' } });
+    setMsg(res.message || res.error);
+    await loadAll();
     setLoading(false);
     setTimeout(() => setMsg(''), 3000);
   };
@@ -501,6 +511,16 @@ export default function Admin() {
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <input type="password" placeholder="New password" value={resetPassword[u.id] || ''} onChange={e => setResetPassword(prev => ({ ...prev, [u.id]: e.target.value }))} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', outline: 'none', flex: 1 }} />
                         <button onClick={() => changeUserPassword(u.id)} disabled={loading} style={btn('#f59e0b')}>Reset</button>
+                      </div>
+                    </div>
+
+                    <div style={{ minWidth: '200px' }}>
+                      <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase' }}>VIP Level</label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <select value={vipSelection[u.id] || 'Auto'} onChange={e => setVipSelection(prev => ({ ...prev, [u.id]: e.target.value }))} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '8px 6px', color: '#fff', fontSize: '12px', minWidth: '105px' }}>
+                          {['Auto', 'Bronze', 'LV1', 'LV2', 'LV3'].map(level => <option key={level} value={level}>{level}</option>)}
+                        </select>
+                        <button onClick={() => updateVip(u.id)} disabled={loading} style={btn('#f59e0b')}>Set</button>
                       </div>
                     </div>
 
