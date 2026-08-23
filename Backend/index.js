@@ -610,6 +610,42 @@ app.get('/api/admin/users', verifyToken, (req, res) => {
   return res.status(200).json(result);
 });
 
+app.post('/api/admin/users/add-machine', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  try {
+    const { userId, tier } = req.body;
+    const user = users.find(item => item.id === userId);
+    const plan = MINING_PLANS[tier];
+    if (!user || !plan) return res.status(400).json({ message: 'Valid user and mining plan are required.' });
+    const purchasedCount = miningContracts.filter(contract => contract.userId === userId && contract.tier === tier).length;
+    if (purchasedCount >= plan.limit) return res.status(400).json({ message: `${tier} plan purchase limit reached.` });
+
+    const startDate = new Date();
+    const endDate = new Date(startDate.getTime() + plan.durationDays * 86400000);
+    const contract = { id: 'mine_' + Math.random().toString(36).substring(2, 9), userId, tier, cost: 0, dailyIncome: plan.dailyIncome, durationDays: plan.durationDays, hashrate: plan.hashrate, startDate: startDate.toISOString(), endDate: endDate.toISOString(), lastCollectedAt: startDate.toISOString(), grantedByAdmin: true };
+    miningContracts.push(contract);
+    transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId, type: `Admin Machine Grant - ${tier}`, amount: 0.01, network: 'Admin Panel', txid: contract.id, status: 'completed', date: startDate.toISOString(), contractId: contract.id });
+    syncMiningWallet(userId);
+    return res.status(201).json({ success: true, contract, message: `${tier} machine added to ${user.username}.` });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/users/set-referral', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  const user = users.find(item => item.id === req.body.userId);
+  const referralCode = String(req.body.referralCode || '').trim();
+  const upline = users.find(item => item.myReferralCode === referralCode);
+  if (!user || !upline) return res.status(400).json({ message: 'Valid user and referral code are required.' });
+  if (user.id === upline.id) return res.status(400).json({ message: 'A user cannot be their own referral.' });
+  let ancestor = upline;
+  while (ancestor) {
+    if (ancestor.id === user.id) return res.status(400).json({ message: 'This referral would create a circular team.' });
+    ancestor = users.find(item => item.id === ancestor.referredBy);
+  }
+  user.referredBy = upline.id;
+  return res.status(200).json({ success: true, message: `Referral assigned to ${user.username}.` });
+});
+
 app.post('/api/admin/users/pause', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const user = users.find(item => item.id === req.body.userId);

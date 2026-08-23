@@ -40,6 +40,8 @@ export default function Admin() {
   const [txSearch, setTxSearch] = useState('');
   const [txType, setTxType] = useState('all');
   const [proofPreview, setProofPreview] = useState(null);
+  const [machineTier, setMachineTier] = useState({});
+  const [referralCode, setReferralCode] = useState({});
 
   const userRole = localStorage.getItem('userRole') || '';
 
@@ -130,6 +132,27 @@ export default function Admin() {
     const res = await api(`/api/admin/users/${user.id}`, { method: 'DELETE' });
     setMsg(res.message || res.error);
     await loadAll();
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const addMachine = async (userId) => {
+    const tier = machineTier[userId] || 'Starter';
+    setLoading(true);
+    const res = await api('/api/admin/users/add-machine', { method: 'POST', body: { userId, tier } });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setLoading(false);
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const assignReferral = async (userId) => {
+    const code = (referralCode[userId] || '').trim();
+    if (!code) { setMsg('Referral code enter karo'); setTimeout(() => setMsg(''), 3000); return; }
+    setLoading(true);
+    const res = await api('/api/admin/users/set-referral', { method: 'POST', body: { userId, referralCode: code } });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setLoading(false);
     setTimeout(() => setMsg(''), 3000);
   };
 
@@ -416,6 +439,28 @@ export default function Admin() {
                           style={{ ...btn('linear-gradient(135deg,#10b981,#059669)'), padding: '8px 14px', borderRadius: '8px', whiteSpace: 'nowrap' }}>
                           Apply
                         </button>
+                      </div>
+                    </div>
+
+                    <div style={{ minWidth: '220px' }}>
+                      <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase' }}>
+                        Add Free Machine
+                      </label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <select value={machineTier[u.id] || 'Starter'} onChange={e => setMachineTier(prev => ({ ...prev, [u.id]: e.target.value }))} style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '8px 6px', color: '#fff', fontSize: '12px', minWidth: '110px' }}>
+                          {Object.keys({ Starter: 1, Pro: 1, Basic: 1, Standard: 1, Premium: 1, Advanced: 1, Professional: 1, Enterprise: 1, Elite: 1 }).map(tier => <option key={tier} value={tier}>{tier}</option>)}
+                        </select>
+                        <button onClick={() => addMachine(u.id)} disabled={loading} style={btn('#7c3aed')}>Add</button>
+                      </div>
+                    </div>
+
+                    <div style={{ minWidth: '240px' }}>
+                      <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase' }}>
+                        Set Referral Code
+                      </label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input type="text" placeholder="e.g. NOOR99" value={referralCode[u.id] || ''} onChange={e => setReferralCode(prev => ({ ...prev, [u.id]: e.target.value }))} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', outline: 'none', flex: 1 }} />
+                        <button onClick={() => assignReferral(u.id)} disabled={loading} style={btn('#0ea5e9')}>Set</button>
                       </div>
                     </div>
 
