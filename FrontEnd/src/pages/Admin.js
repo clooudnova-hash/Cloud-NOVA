@@ -123,6 +123,18 @@ export default function Admin() {
     setTimeout(() => setMsg(''), 4000);
   };
 
+  const addBalance = async (user) => {
+    const amount = window.prompt(`Balance amount to add for ${user.username || user.fullName}:`);
+    if (amount === null || !amount.trim() || Number(amount) <= 0) return;
+    const note = window.prompt('Note (optional):') || 'Admin balance addition';
+    setLoading(true);
+    const res = await api('/api/admin/users/adjust-balance', { method: 'POST', body: { userId: user.id, amount: Number(amount), note } });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setLoading(false);
+    setTimeout(() => setMsg(''), 4000);
+  };
+
   const togglePause = async (user) => {
     const res = await api('/api/admin/users/pause', { method: 'POST', body: { userId: user.id, paused: !user.paused } });
     setMsg(res.message || res.error);
@@ -451,6 +463,7 @@ export default function Admin() {
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '14px', alignItems: 'flex-end' }}>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button onClick={() => addBalance(u)} disabled={loading} style={btn('#10b981')}>Add Balance</button>
                       <button onClick={() => togglePause(u)} disabled={loading} style={btn(u.paused ? '#10b981' : '#f59e0b')}>
                         {u.paused ? 'Resume' : 'Pause'}
                       </button>
