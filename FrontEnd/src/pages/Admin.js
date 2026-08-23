@@ -42,6 +42,8 @@ export default function Admin() {
   const [proofPreview, setProofPreview] = useState(null);
   const [machineTier, setMachineTier] = useState({});
   const [referralCode, setReferralCode] = useState({});
+  const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '', referralCode: '' });
+  const [resetPassword, setResetPassword] = useState({});
 
   const userRole = localStorage.getItem('userRole') || '';
 
@@ -152,6 +154,28 @@ export default function Admin() {
     const res = await api('/api/admin/users/set-referral', { method: 'POST', body: { userId, referralCode: code } });
     setMsg(res.message || res.error);
     await loadAll();
+    setLoading(false);
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const createUser = async () => {
+    if (!newUser.fullName || !newUser.email || !newUser.password) { setMsg('Name, email aur password enter karo'); return; }
+    setLoading(true);
+    const res = await api('/api/admin/users/create', { method: 'POST', body: newUser });
+    setMsg(res.message || res.error);
+    if (res.success) setNewUser({ fullName: '', email: '', password: '', referralCode: '' });
+    await loadAll();
+    setLoading(false);
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const changeUserPassword = async (userId) => {
+    const newPassword = resetPassword[userId] || '';
+    if (newPassword.length < 6) { setMsg('Password kam az kam 6 characters ka ho'); return; }
+    setLoading(true);
+    const res = await api('/api/admin/users/reset-password', { method: 'POST', body: { userId, newPassword } });
+    setMsg(res.message || res.error);
+    setResetPassword(prev => ({ ...prev, [userId]: '' }));
     setLoading(false);
     setTimeout(() => setMsg(''), 3000);
   };
@@ -355,6 +379,14 @@ export default function Admin() {
               />
             </div>
 
+            <div style={{ ...card, display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <strong style={{ color: '#fff', fontSize: '12px' }}>Create User</strong>
+              {[
+                ['fullName', 'Full name'], ['email', 'Gmail address'], ['password', 'Password'], ['referralCode', 'Referral code (optional)']
+              ].map(([field, placeholder]) => <input key={field} type={field === 'password' ? 'password' : 'text'} placeholder={placeholder} value={newUser[field]} onChange={e => setNewUser(prev => ({ ...prev, [field]: e.target.value }))} style={{ flex: '1 1 150px', minWidth: '130px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', outline: 'none' }} />)}
+              <button onClick={createUser} disabled={loading} style={btn('#10b981')}>Create</button>
+            </div>
+
             {users.length === 0
               ? <div style={{ ...card, color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Koi user nahi hai</div>
               : users.filter(u =>
@@ -461,6 +493,14 @@ export default function Admin() {
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <input type="text" placeholder="e.g. NOOR99" value={referralCode[u.id] || ''} onChange={e => setReferralCode(prev => ({ ...prev, [u.id]: e.target.value }))} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', outline: 'none', flex: 1 }} />
                         <button onClick={() => assignReferral(u.id)} disabled={loading} style={btn('#0ea5e9')}>Set</button>
+                      </div>
+                    </div>
+
+                    <div style={{ minWidth: '220px' }}>
+                      <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase' }}>Reset Password</label>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input type="password" placeholder="New password" value={resetPassword[u.id] || ''} onChange={e => setResetPassword(prev => ({ ...prev, [u.id]: e.target.value }))} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '8px 10px', color: '#fff', fontSize: '12px', outline: 'none', flex: 1 }} />
+                        <button onClick={() => changeUserPassword(u.id)} disabled={loading} style={btn('#f59e0b')}>Reset</button>
                       </div>
                     </div>
 
