@@ -315,10 +315,11 @@ app.post('/api/auth/signup', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
   try {
     const { email, password } = req.body;
-    const normalizedEmail = String(email || '').toLowerCase().trim();
-    if (!isValidEmail(normalizedEmail)) return res.status(400).json({ message: 'Please login with a valid email address.' });
-    const user = users.find(u => u.email === normalizedEmail);
-    if (!user || !bcrypt.compareSync(password, user.password)) return res.status(400).json({ message: 'Invalid Login Credentials!' });
+    const loginValue = String(email || '').toLowerCase().trim();
+    if (!loginValue) return res.status(400).json({ message: 'Email or username is required.' });
+    const user = users.find(u => String(u.email || '').toLowerCase() === loginValue || String(u.username || '').toLowerCase() === loginValue);
+    const storedPassword = user?.password || user?.password_hash;
+    if (!user || !storedPassword || !bcrypt.compareSync(String(password || ''), storedPassword)) return res.status(400).json({ message: 'Invalid Login Credentials!' });
     if (user.paused) return res.status(403).json({ message: 'This account is paused. Contact an administrator.' });
 
     const token = jwt.sign({ id: user.id, role: user.role }, SIGNING_SECRET, { expiresIn: '1d' });
