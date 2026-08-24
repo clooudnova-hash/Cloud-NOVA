@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download } from 'lucide-react';
 
 const publicAppUrl = (process.env.REACT_APP_PUBLIC_APP_URL || window.location.origin).replace(/\/$/, '');
 
@@ -95,18 +94,6 @@ const Profile = () => {
           </div>
           <span className="text-[7px] font-black uppercase text-blue-100 tracking-widest mt-1">Official</span>
         </div>
-      </div>
-
-      <div className="mx-4 mb-4">
-        <a
-          href="/CloudNova.apk"
-          download="CloudNova.apk"
-          className="profile-apk-download w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-wide text-white shadow-md"
-          aria-label="Download CloudNova APK"
-        >
-          <span className="profile-apk-icon"><Download size={16} aria-hidden="true" /></span>
-          <span><small className="profile-apk-label">CLOUDNOVA APP</small>Download CloudNova APK</span>
-        </a>
       </div>
 
       {/* Balance Summary */}
