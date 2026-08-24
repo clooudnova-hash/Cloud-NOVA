@@ -16,9 +16,8 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
-    const normalizedEmail = formData.email.trim().toLowerCase();
-    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
-    if (!isValidEmail) { setErrorMessage('Please login with a valid email address.'); return; }
+    const loginValue = formData.email.trim();
+    if (!loginValue) { setErrorMessage('Please enter your email or username.'); return; }
     setLoading(true);
     try {
       const response = await fetch('/api/auth/login', {
@@ -104,12 +103,12 @@ export default function Login() {
 
             {/* Email */}
             <div>
-              <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '600', marginBottom: '8px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Email Address</label>
+              <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '600', marginBottom: '8px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Email or Username</label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '15px', opacity: 0.5 }}>✉️</span>
                 <input
-                  type="email" name="email" value={formData.email} onChange={handleChange} required
-                  placeholder="you@example.com"
+                  type="text" name="email" value={formData.email} onChange={handleChange} required
+                  placeholder="you@example.com or username"
                   style={{
                     width: '100%', background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px',

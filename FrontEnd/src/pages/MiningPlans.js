@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MachineCard from '../Components/MachineCard';
 
@@ -23,6 +23,31 @@ const MiningPlans = () => {
   const [rentingId, setRentingId] = useState(null);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState('');
+  const limitedSaleDuration = 72 * 60 * 60 * 1000;
+  const initialSaleDeadline = (() => {
+    const savedDeadline = Number(localStorage.getItem('cloudnovaLimitedSaleDeadline'));
+    return Number.isFinite(savedDeadline) && savedDeadline > Date.now() ? savedDeadline : Date.now() + limitedSaleDuration;
+  })();
+  const [saleDeadline] = useState(initialSaleDeadline);
+  const [saleTimeLeft, setSaleTimeLeft] = useState(() => {
+    return Math.max(0, initialSaleDeadline - Date.now());
+  });
+
+  useEffect(() => {
+    let deadline = saleDeadline;
+    localStorage.setItem('cloudnovaLimitedSaleDeadline', String(deadline));
+    const interval = setInterval(() => {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        deadline = Date.now() + limitedSaleDuration;
+        localStorage.setItem('cloudnovaLimitedSaleDeadline', String(deadline));
+        setSaleTimeLeft(limitedSaleDuration);
+      } else {
+        setSaleTimeLeft(remaining);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [limitedSaleDuration, saleDeadline]);
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState(null); // { machine }
@@ -34,11 +59,11 @@ const MiningPlans = () => {
     { id: 2, name: 'CloudNova HZ Mini2', dailyIncome: 1.00, termDays: 38, rebate: 0.00, totalIncome: 38.00, limit: 1, price: 20.00, country: 'Russia', category: 'plans' },
     { id: 3, name: 'CloudNova Basic', dailyIncome: 1.37, termDays: 38, rebate: 0.00, totalIncome: 52.00, limit: 1, price: 30.00, country: 'All', category: 'plans' },
     { id: 4, name: 'CloudNova Standard', dailyIncome: 1.40, termDays: 52, rebate: 0.00, totalIncome: 73.00, limit: 2, price: 50.00, country: 'Kazakhstan', category: 'plans' },
-    { id: 5, name: 'CloudNova Premium', dailyIncome: 2.83, termDays: 53, rebate: 0.00, totalIncome: 150.00, limit: 2, price: 80.00, country: 'Russia', category: 'plans' },
-    { id: 6, name: 'CloudNova Advanced', dailyIncome: 2.73, termDays: 55, rebate: 0.00, totalIncome: 150.00, limit: 2, price: 100.00, country: 'UK', category: 'plans' },
-    { id: 7, name: 'CloudNova Professional', dailyIncome: 4.38, termDays: 48, rebate: 0.00, totalIncome: 210.00, limit: 3, price: 150.00, country: 'USA', category: 'plans' },
-    { id: 8, name: 'CloudNova Enterprise', dailyIncome: 6.00, termDays: 50, rebate: 0.00, totalIncome: 300.00, limit: 5, price: 200.00, country: 'Global', category: 'plans' },
-    { id: 9, name: 'CloudNova Elite', dailyIncome: 9.09, termDays: 88, rebate: 0.00, totalIncome: 800.00, limit: 5, price: 500.00, country: 'Global', category: 'plans' }
+    { id: 5, name: 'CloudNova Premium', dailyIncome: 2.83, termDays: 53, rebate: 0.00, totalIncome: 150.00, limit: 2, price: 80.00, country: 'Russia', category: 'limited' },
+    { id: 6, name: 'CloudNova Advanced', dailyIncome: 2.73, termDays: 55, rebate: 0.00, totalIncome: 150.00, limit: 2, price: 100.00, country: 'UK', category: 'limited' },
+    { id: 7, name: 'CloudNova Professional', dailyIncome: 4.38, termDays: 48, rebate: 0.00, totalIncome: 210.00, limit: 3, price: 150.00, country: 'USA', category: 'limited' },
+    { id: 8, name: 'CloudNova Enterprise', dailyIncome: 6.00, termDays: 50, rebate: 0.00, totalIncome: 300.00, limit: 5, price: 200.00, country: 'Global', category: 'limited' },
+    { id: 9, name: 'CloudNova Elite', dailyIncome: 9.09, termDays: 88, rebate: 0.00, totalIncome: 800.00, limit: 5, price: 500.00, country: 'Global', category: 'limited' }
   ];
 
   const filteredMachines = plans.filter(machine => {
@@ -200,10 +225,14 @@ const MiningPlans = () => {
         )}
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl p-1 flex shadow-[0_8px_22px_rgba(15,23,42,0.08)] border border-slate-200/80 text-xs font-bold">
+        <div className="bg-white rounded-xl p-1 flex gap-1 shadow-[0_8px_22px_rgba(15,23,42,0.08)] border border-slate-200/80 text-xs font-bold">
           <button type="button" onClick={() => { setActiveTab('plans'); setSelectedCountry('All'); }}
             className={`w-full text-center py-2.5 rounded-lg transition-all ${activeTab === 'plans' ? 'bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]' : 'text-slate-500'}`}>
-            ⚡ Premium Mining Plans
+            ⚡ Mining Plans
+          </button>
+          <button type="button" onClick={() => { setActiveTab('limited'); setSelectedCountry('All'); }}
+            className={`w-full text-center py-2.5 rounded-lg transition-all ${activeTab === 'limited' ? 'bg-gradient-to-r from-[#f59e0b] to-[#ea580c] text-white shadow-[0_4px_12px_rgba(245,158,11,0.3)]' : 'text-slate-500'}`}>
+            🔥 Limited Offers
           </button>
         </div>
 
@@ -216,6 +245,21 @@ const MiningPlans = () => {
                 {country}
               </button>
             ))}
+          </div>
+        )}
+
+        {activeTab === 'limited' && (
+          <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 via-orange-50 to-rose-50 px-4 py-3 shadow-[0_8px_20px_rgba(245,158,11,0.14)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Premium machine sale</p>
+                <p className="text-xs font-bold text-slate-700 mt-1">Limited pricing is live while the timer runs</p>
+              </div>
+              <div className="shrink-0 rounded-xl bg-slate-950 px-3 py-2 text-center text-white shadow-lg">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-amber-300">Sale ends in</p>
+                <p className="text-sm font-black tabular-nums">{String(Math.floor(saleTimeLeft / 86400000)).padStart(2, '0')}d {String(Math.floor((saleTimeLeft % 86400000) / 3600000)).padStart(2, '0')}h {String(Math.floor((saleTimeLeft % 3600000) / 60000)).padStart(2, '0')}m {String(Math.floor((saleTimeLeft % 60000) / 1000)).padStart(2, '0')}s</p>
+              </div>
+            </div>
           </div>
         )}
 

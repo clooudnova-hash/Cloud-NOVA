@@ -15,9 +15,9 @@ export default function Reports() {
       .then(r => r.json()).then(d => { if (Array.isArray(d)) setTransactions(d.slice().reverse()); }).catch(() => {});
   }, []); // eslint-disable-line
 
-  const totalDeposited = transactions.filter(t => t.type === 'deposit' && t.status === 'completed').reduce((s, t) => s + t.amount, 0);
-  const totalWithdrawn = transactions.filter(t => t.type === 'withdrawal' && t.status === 'completed').reduce((s, t) => s + t.amount, 0);
-  const totalLeased = transactions.filter(t => t.type?.startsWith('Lease') && t.status === 'completed').reduce((s, t) => s + t.amount, 0);
+  const totalDeposited = transactions.filter(t => t.type === 'deposit' && t.status === 'completed').reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalWithdrawn = transactions.filter(t => t.type === 'withdrawal' && t.status === 'completed').reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalLeased = transactions.filter(t => t.type?.startsWith('Lease') && t.status === 'completed').reduce((s, t) => s + Number(t.amount || 0), 0);
   const pending = transactions.filter(t => t.status === 'pending').length;
 
   const stats = [

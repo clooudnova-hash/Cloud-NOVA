@@ -465,7 +465,8 @@ app.post('/api/auth/change-password', verifyToken, (req, res) => {
     if (newPassword.length < 6) return res.status(400).json({ message: 'New password must be at least 6 characters.' });
     const user = users.find(u => u.id === req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
-    if (!bcrypt.compareSync(currentPassword, user.password)) return res.status(400).json({ message: 'Current password is incorrect.' });
+    const storedPassword = user.password || user.password_hash;
+    if (!storedPassword || !bcrypt.compareSync(currentPassword, storedPassword)) return res.status(400).json({ message: 'Current password is incorrect.' });
     user.password = bcrypt.hashSync(newPassword, 10);
     return res.status(200).json({ success: true, message: 'Password updated successfully.' });
   } catch (err) { return res.status(500).json({ error: err.message }); }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const publicAppUrl = (process.env.REACT_APP_PUBLIC_APP_URL || window.location.origin).replace(/\/$/, '');
@@ -110,6 +111,21 @@ const Profile = () => {
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hashrate</p>
           <p className="text-sm font-black text-blue-600 mt-1">{hashrate} TH/s</p>
         </div>
+      </div>
+
+      <div className="mx-4 mb-4">
+        <button
+          type="button"
+          aria-label="Download CloudNova APK"
+          onClick={() => window.location.assign(`${window.location.origin}/api/download/apk`)}
+          style={{ width: '100%', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', padding: '8px 14px', border: '1px solid rgba(147,197,253,0.6)', borderRadius: '13px', background: 'linear-gradient(90deg, #38bdf8 0%, #2563eb 48%, #312e81 100%)', color: '#ffffff', cursor: 'pointer', boxSizing: 'border-box', boxShadow: '0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24)', animation: 'profileDownloadPulse 2.4s ease-in-out infinite', transition: 'transform 180ms ease, box-shadow 180ms ease', textAlign: 'center' }}
+          onMouseEnter={event => { event.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={event => { event.currentTarget.style.transform = 'translateY(0)'; }}
+        >
+          <span style={{ width: '28px', height: '28px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9px', background: 'rgba(255,255,255,0.22)' }}><Download size={17} strokeWidth={2.8} /></span>
+          <span style={{ fontSize: '12px', fontWeight: '900', letterSpacing: '0.6px' }}>Download CloudNova APK</span>
+        </button>
+        <style>{`@keyframes profileDownloadPulse { 0%, 100% { box-shadow: 0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24); } 50% { box-shadow: 0 9px 25px rgba(37,99,235,0.46), inset 0 1px 0 rgba(255,255,255,0.32); } }`}</style>
       </div>
 
       {/* Projected mining income */}

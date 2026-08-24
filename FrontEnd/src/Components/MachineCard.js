@@ -2,17 +2,16 @@ import React from 'react';
 
 const MachineCard = ({ data, onRent, renting }) => {
   const { id, name, dailyIncome, termDays, rebate, totalIncome, limit, price, image } = data || {};
-  const isPremium = price >= 200;
-  const isLimitedOffer = price <= 80;
+  const isPremium = price >= 80;
 
   // Cycle through miner images if no specific image provided
   const imgSrc = image || `/miner${((id - 1) % 3) + 1}.jpg`;
 
   return (
     <div className={`group relative rounded-2xl p-4 flex justify-between gap-3 border-l-4 shadow-[0_8px_24px_rgba(15,23,42,0.07)] transition duration-200 hover:-translate-y-0.5 ${isPremium ? 'bg-gradient-to-br from-[#fffdf5] via-[#fff8df] to-[#ffedb0] border-amber-400 border-l-orange-500 shadow-[0_8px_28px_rgba(245,158,11,0.2)] hover:shadow-[0_12px_32px_rgba(245,158,11,0.28)]' : 'bg-gradient-to-r from-white via-white to-[#edf6ff] border-blue-200 border-l-[#2563eb] hover:border-cyan-300 hover:border-l-cyan-500 hover:shadow-[0_10px_28px_rgba(37,99,235,0.16)]'}`}>
-      {(isPremium || isLimitedOffer) && (
+      {isPremium && (
         <div className={`absolute -top-3 right-4 text-white text-[9px] font-black tracking-[0.16em] px-3 py-1 rounded-full shadow-md border-2 border-white ${isPremium ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-600 to-cyan-500'}`}>
-          {isPremium ? 'PREMIUM' : 'LIMITED OFFER'}
+          PREMIUM
         </div>
       )}
 
