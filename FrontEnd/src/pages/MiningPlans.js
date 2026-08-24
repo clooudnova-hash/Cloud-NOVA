@@ -255,8 +255,8 @@ const MiningPlans = () => {
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Premium machine sale</p>
                 <p className="text-xs font-bold text-slate-700 mt-1">Limited pricing is live while the timer runs</p>
               </div>
-              <div className="shrink-0 rounded-xl bg-slate-950 px-3 py-2 text-center text-white shadow-lg">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-amber-300">Sale ends in</p>
+              <div className="shrink-0 rounded-xl border border-cyan-200/30 bg-gradient-to-br from-[#0b1a50] via-[#2563eb] to-[#087f9b] px-3 py-2 text-center text-white shadow-[0_8px_18px_rgba(37,99,235,0.28)]">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-cyan-200">Sale ends in</p>
                 <p className="text-sm font-black tabular-nums">{String(Math.floor(saleTimeLeft / 86400000)).padStart(2, '0')}d {String(Math.floor((saleTimeLeft % 86400000) / 3600000)).padStart(2, '0')}h {String(Math.floor((saleTimeLeft % 3600000) / 60000)).padStart(2, '0')}m {String(Math.floor((saleTimeLeft % 60000) / 1000)).padStart(2, '0')}s</p>
               </div>
             </div>

@@ -27,10 +27,10 @@ try {
 }
 
 // Step 2: Build Debug APK
-console.log('🔨 Step 2: Building Debug APK (this may take 5-15 minutes)...');
+console.log('🔨 Step 2: Building signed Debug APK (this may take 5-15 minutes)...');
 try {
   execSync('gradlew assembleDebug', { cwd: ANDROID_DIR, stdio: 'inherit' });
-  console.log('✅ Debug APK built successfully\n');
+  console.log('✅ Signed Debug APK built successfully\n');
 } catch (error) {
   console.error('❌ APK build failed:', error.message);
   process.exit(1);
@@ -52,7 +52,7 @@ console.log(`✅ Found: ${apkFile} (${apkSize} MB)\n`);
 
 // Step 4: Copy to Backend
 console.log('📤 Step 4: Copying APK to Backend...');
-const backendApkPath = path.join(BACKEND_DIR, 'app-debug.apk');
+const backendApkPath = path.join(BACKEND_DIR, 'app-release.apk');
 fs.copyFileSync(apkPath, backendApkPath);
 console.log(`✅ Copied to: ${backendApkPath}\n`);
 
@@ -60,7 +60,7 @@ console.log(`✅ Copied to: ${backendApkPath}\n`);
 console.log('🔗 Step 5: APK Download Information\n');
 console.log('=====================================');
 console.log('📱 APK Details:');
-console.log(`   File: CloudNova-debug.apk`);
+console.log(`   File: CloudNova.apk`);
 console.log(`   Size: ${apkSize} MB`);
 console.log(`   Path: ${backendApkPath}`);
 console.log(`   Download URL: http://localhost:5000/api/download/apk`);
@@ -71,6 +71,6 @@ console.log('✅ APK Build Process Completed Successfully!\n');
 console.log('Next Steps:');
 console.log('1. Restart the backend server to serve the new APK');
 console.log('2. Test download buttons on Home and Profile pages');
-console.log('3. Install APK on Android device: adb install app-debug.apk');
+console.log('3. Install APK on Android device: adb install app-release.apk');
 console.log('4. Test mobile app functionality');
 console.log('5. For production, build release APK: gradlew assembleRelease\n');

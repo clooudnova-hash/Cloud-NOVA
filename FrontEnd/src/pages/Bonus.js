@@ -104,13 +104,13 @@ const Bonus = () => {
     <div className="premium-page min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
+      <div className="bonus-hero-card bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
         <p className="text-[10px] text-blue-200 font-bold uppercase tracking-wider">Rewards Center</p>
         <h2 className="text-2xl font-black tracking-tight text-white mt-0.5">🎁 Bonus & Vouchers</h2>
       </div>
 
       {/* Voucher Claim */}
-      <div className="bg-white rounded-2xl p-5 mx-4 mt-2 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+      <div className="bonus-voucher-card bg-white rounded-2xl p-5 mx-4 mt-2 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
         <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider mb-1">Redeem Voucher Code</h3>
         <p className="text-[11px] text-slate-400 mb-4">Enter your code to claim bonus balance instantly</p>
 
@@ -139,7 +139,7 @@ const Bonus = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-5 mx-4 mt-4 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+      <div className="bonus-tasks-card bg-white rounded-2xl p-5 mx-4 mt-4 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
         <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider mb-1">📋 Task Rewards</h3>
         <p className="text-[11px] text-slate-400 mb-4">Complete eligible tasks to receive instant rewards</p>
 
@@ -148,7 +148,7 @@ const Bonus = () => {
             const status = taskStatuses[t.id];
             const isLocked = status?.locked;
             return (
-              <div key={t.id} className="bg-[#f8fafc] border border-slate-100 rounded-xl p-3">
+              <div key={t.id} className="bonus-task-row bg-[#f8fafc] border border-slate-100 rounded-xl p-3">
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-xs font-bold text-slate-700">{t.task}</p>

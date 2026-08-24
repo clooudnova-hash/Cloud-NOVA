@@ -90,16 +90,13 @@ export default function Home() {
 
       <button
         type="button"
+        className="apk-download-button home-apk-download"
         aria-label="Download CloudNova APK"
         onClick={() => window.location.assign(`${window.location.origin}/api/download/apk`)}
-        style={{ position: 'fixed', top: '12px', right: '12px', zIndex: 450, width: '158px', minHeight: '48px', display: 'flex', alignItems: 'center', gap: '7px', padding: '6px 8px', border: '1px solid rgba(147,197,253,0.6)', borderRadius: '13px', background: 'linear-gradient(135deg, #38bdf8 0%, #2563eb 50%, #312e81 100%)', color: '#ffffff', cursor: 'pointer', boxSizing: 'border-box', boxShadow: '0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24)', animation: 'homeDownloadPulse 2.4s ease-in-out infinite', transition: 'transform 180ms ease, box-shadow 180ms ease', textAlign: 'left' }}
-        onMouseEnter={event => { event.currentTarget.style.transform = 'translateY(-2px)'; }}
-        onMouseLeave={event => { event.currentTarget.style.transform = 'translateY(0)'; }}
       >
-        <span style={{ width: '28px', height: '28px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9px', background: 'rgba(255,255,255,0.22)' }}><Download size={17} strokeWidth={2.8} /></span>
-        <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}><span style={{ fontSize: '7px', fontWeight: '900', letterSpacing: '1px' }}>GET THE APP</span><span style={{ marginTop: '3px', fontSize: '11px', fontWeight: '900' }}>Download APK</span></span>
+        <span className="apk-download-icon"><Download size={17} strokeWidth={2.8} /></span>
+        <span className="apk-download-copy"><span className="apk-download-eyebrow">GET THE APP</span><span className="apk-download-title">Download APK</span></span>
       </button>
-      <style>{`@keyframes homeDownloadPulse { 0%, 100% { box-shadow: 0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24); } 50% { box-shadow: 0 9px 25px rgba(37,99,235,0.46), inset 0 1px 0 rgba(255,255,255,0.32); } }`}</style>
 
       {/* UPPER BLUE ZONE */}
       <div className="home-top-zone" style={{ backgroundImage: 'linear-gradient(to bottom, #0b1a50 0%, #153393 100%)', padding: '24px 40px 40px 40px', color: '#ffffff', position: 'relative' }}>
@@ -142,7 +139,7 @@ export default function Home() {
               </div>
             );
           })}
-          <div style={{ position: 'absolute', left: '50%', top: '57%', transform: 'translate(-50%, -50%)', zIndex: 18, width: '58px', height: '58px', borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #ffe082, #ffb300 45%, #f57c00 80%)', border: '4px solid #ffd54f', boxShadow: '0 0 25px rgba(255,152,0,0.85), inset 0 0 10px rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '31px', fontWeight: '900', animation: 'goldCoinSpin 2.8s ease-in-out infinite' }}>$</div>
+          <div className="home-core-coin" style={{ position: 'absolute', left: '50%', top: '57%', transform: 'translate(-50%, -50%)', zIndex: 18, width: '58px', height: '58px', borderRadius: '50%', background: 'radial-gradient(circle at 35% 30%, #67e8f9, #2563eb 48%, #0b1a50 84%)', border: '4px solid #7dd3fc', boxShadow: '0 0 25px rgba(14,165,233,0.72), inset 0 0 10px rgba(255,255,255,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '31px', fontWeight: '900', animation: 'cloudnovaCoreCoin 2.8s ease-in-out infinite' }}>$</div>
           {!activeContracts.length && <p style={{ position: 'absolute', bottom: '2px', color: '#94a3b8', fontSize: '10px', margin: 0 }}>Demo preview • Start a plan to activate real income</p>}
         </div>
 
@@ -169,12 +166,12 @@ export default function Home() {
 
       {/* CLOUD VIDEO */}
       <section style={{ padding: '20px 40px 0', backgroundColor: '#f8fafc' }}>
-        <div style={{ backgroundColor: '#0f172a', borderRadius: '16px', overflow: 'hidden', border: '1px solid #1e3a8a', boxShadow: '0 8px 24px rgba(15,23,42,0.16)' }}>
+        <div className="cloudnova-video-card" style={{ backgroundColor: '#0f172a', borderRadius: '16px', overflow: 'hidden', border: '1px solid #1e3a8a', boxShadow: '0 8px 24px rgba(15,23,42,0.16)' }}>
           <div style={{ padding: '14px 16px 10px', color: '#ffffff' }}>
             <p style={{ margin: 0, color: '#60a5fa', fontSize: '10px', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase' }}>CloudNova Media</p>
             <h2 style={{ margin: '4px 0 0', fontSize: '16px', fontWeight: '900' }}>Cloud Video</h2>
           </div>
-          <div style={{ position: 'relative' }}>
+          <div className="cloudnova-video-frame" style={{ position: 'relative' }}>
             <video src="/cloudvideo.mp4" loop controls playsInline preload="metadata" style={{ display: 'block', width: '100%', height: 'clamp(190px, 42vw, 360px)', objectFit: 'cover', backgroundColor: '#020617' }} />
           </div>
         </div>
@@ -201,8 +198,9 @@ export default function Home() {
                   <stop offset="100%" stopColor="#2563eb" stopOpacity="0.00"/>
                 </linearGradient>
               </defs>
-              <path d="M 0,45 C 60,15 110,65 170,35 C 230,10 280,60 340,25 C 400,15 450,55 520,30 L 520,80 L 0,80 Z" fill="url(#premiumChartGrad)" style={{ animation: 'fluidGraphPulse 3s ease-in-out infinite alternate' }}/>
-              <path d="M 0,45 C 60,15 110,65 170,35 C 230,10 280,60 340,25 C 400,15 450,55 520,30" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" style={{ animation: 'fluidGraphPulse 3s ease-in-out infinite alternate' }}/>
+              <path className="live-graph-area" d="M 0,45 C 60,15 110,65 170,35 C 230,10 280,60 340,25 C 400,15 450,55 520,30 L 520,80 L 0,80 Z" fill="url(#premiumChartGrad)" />
+              <path className="live-graph-line" d="M 0,45 C 60,15 110,65 170,35 C 230,10 280,60 340,25 C 400,15 450,55 520,30" fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" />
+              <circle className="live-graph-dot" cx="450" cy="46" r="4" fill="#0ea5e9" stroke="#ffffff" strokeWidth="2" />
             </svg>
           </div>
         </div>
@@ -239,7 +237,7 @@ export default function Home() {
         @keyframes cloudnovaTicker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         @keyframes gtcStraightOrbit { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes incomeCoinFloat { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-9px) rotate(8deg); } }
-        @keyframes goldCoinSpin { 0%, 100% { transform: translate(-50%, -50%) rotateY(0deg) scale(1); } 50% { transform: translate(-50%, -50%) rotateY(180deg) scale(1.08); } }
+        @keyframes cloudnovaCoreCoin { 0%, 100% { transform: translate(-50%, -50%) rotateY(0deg) scale(1); } 50% { transform: translate(-50%, -50%) rotateY(180deg) scale(1.08); } }
         @keyframes fluidGraphPulse { 0% { transform: scaleY(0.9) translateY(4px); opacity: 0.85; } 100% { transform: scaleY(1.05) translateY(-2px); opacity: 1; } }
       `}</style>
     </div>

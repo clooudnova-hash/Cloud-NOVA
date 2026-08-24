@@ -301,7 +301,8 @@ app.post('/api/auth/signup', (req, res) => {
     const ref = Math.random().toString(36).substring(2, 8).toUpperCase();
     const newUserId = 'usr_' + Math.random().toString(36).substring(2, 9);
 
-    const upline = referralCode ? findUpline(referralCode.trim()) : null;
+    const normalizedReferralCode = String(referralCode || '').trim().toUpperCase();
+    const upline = normalizedReferralCode ? findUpline(normalizedReferralCode) : null;
     users.push({ id: newUserId, username: normalizedEmail.split('@')[0], fullName, email: normalizedEmail, password: hashed, role: 'user', myReferralCode: ref, referredBy: upline ? upline.id : '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
     wallets.push({ userId: newUserId, balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
 

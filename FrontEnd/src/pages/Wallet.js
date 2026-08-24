@@ -142,9 +142,9 @@ const Wallet = () => {
       )}
 
       {/* Top Balance Card */}
-      <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
+      <div className="wallet-balance-card bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
         <p className="text-[10px] text-blue-200 font-bold uppercase tracking-wider">Total Assets</p>
-        <h2 className="text-3xl font-black tracking-tight text-white">${balance ?? '0.00'}</h2>
+        <h2 className="wallet-balance-amount text-3xl font-black tracking-tight text-white">${balance ?? '0.00'}</h2>
         <div className="grid grid-cols-2 gap-3 mt-4 text-xs font-bold">
           <button type="button" onClick={() => { setActiveTab('deposit'); setPaymentMethod('EasyPaisa'); }}
             className={`py-2.5 rounded-xl border font-black uppercase transition-all duration-200 ${activeTab === 'deposit' ? 'bg-white text-[#1d4ed8] border-white shadow-[0_0_15px_rgba(255,255,255,0.6)]' : 'bg-transparent text-white border-white/30'}`}>
@@ -158,7 +158,7 @@ const Wallet = () => {
       </div>
 
       {/* Timings */}
-      <div className="mx-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[10px] text-amber-700 font-semibold shadow-sm">
+      <div className="wallet-hours-card mx-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[10px] text-amber-700 font-semibold shadow-sm">
         <p>🕒 Deposit Hours: 10:00 AM - 09:00 PM (Everyday)</p>
         <p className="mt-0.5">📆 Withdrawal Hours: 10:00 AM - 09:00 PM (Monday to Friday)</p>
       </div>
@@ -171,7 +171,7 @@ const Wallet = () => {
       )}
 
       {/* Form Card */}
-      <div className="bg-white rounded-2xl p-5 mx-4 mt-4 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
+      <div className="wallet-form-card bg-white rounded-2xl p-5 mx-4 mt-4 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] space-y-4">
         <h3 className="text-xs font-black uppercase text-slate-700 tracking-wider border-b border-slate-100 pb-2">
           {activeTab === 'deposit' ? 'Secure Payment Deposit Gateway' : 'Secure Funds Withdrawal Engine'}
         </h3>
@@ -292,7 +292,7 @@ const Wallet = () => {
       </div>
 
       {/* Transaction History */}
-      <div className="bg-white rounded-2xl p-5 mx-4 mt-4 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+      <div className="wallet-history-card bg-white rounded-2xl p-5 mx-4 mt-4 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
         <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-3">Transaction History</h4>
         {transactions.length === 0 ? (
           <p className="text-[11px] text-slate-400 text-center py-4">No transactions yet.</p>

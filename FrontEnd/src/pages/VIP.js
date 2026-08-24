@@ -50,7 +50,7 @@ const MyMining = () => {
     <div className="premium-page min-h-screen bg-[#f5f8ff] text-slate-800 pb-24 font-sans antialiased">
       
       {/* Top Banner with Vibrant Blue (Wallet Page Color Style) */}
-      <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
+      <div className="vip-hero-card bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)]">
         <p className="text-[10px] text-blue-200 font-bold uppercase tracking-wider">Operation Dashboard</p>
         <h2 className="text-2xl font-black tracking-tight text-white mt-0.5">Mining & VIP Cluster</h2>
         
@@ -152,7 +152,7 @@ const MyMining = () => {
             {vipLevels.map((vip, idx) => {
               const unlocked = accumulatedDeposit >= vip.threshold;
               return (
-              <div key={idx} className={`bg-white rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-100 border-l-4 ${vip.color} flex justify-between items-center text-xs`}>
+              <div key={idx} className={`vip-level-card bg-white rounded-2xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-100 border-l-4 ${vip.color} flex justify-between items-center text-xs`}>
                 <div className="space-y-1">
                   <h4 className="font-black tracking-tight text-sm flex items-center gap-1 text-slate-800">
                     🏅 {vip.level}

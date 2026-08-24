@@ -79,7 +79,7 @@ const Profile = () => {
       )}
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-md flex items-center justify-between">
+      <div className="profile-hero-card bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] mx-4 my-3 p-5 rounded-2xl text-white shadow-md flex items-center justify-between">
         <div>
           <h2 className="text-base font-black uppercase tracking-tight">{fullName}</h2>
           <p className="text-[11px] font-medium text-blue-100 mt-0.5">CloudNova Member</p>
@@ -99,15 +99,15 @@ const Profile = () => {
 
       {/* Balance Summary */}
       <div className="grid grid-cols-3 gap-3 mx-4 my-4 text-center">
-        <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+        <div className="profile-stat-card bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Balance</p>
           <p className="text-sm font-black text-emerald-600 mt-1">{balance}</p>
         </div>
-        <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+        <div className="profile-stat-card bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Miners</p>
           <p className="text-sm font-black text-slate-700 mt-1">{minersCount}</p>
         </div>
-        <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
+        <div className="profile-stat-card bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hashrate</p>
           <p className="text-sm font-black text-blue-600 mt-1">{hashrate} TH/s</p>
         </div>
@@ -116,16 +116,13 @@ const Profile = () => {
       <div className="mx-4 mb-4">
         <button
           type="button"
+          className="apk-download-button profile-apk-download"
           aria-label="Download CloudNova APK"
           onClick={() => window.location.assign(`${window.location.origin}/api/download/apk`)}
-          style={{ width: '100%', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', padding: '8px 14px', border: '1px solid rgba(147,197,253,0.6)', borderRadius: '13px', background: 'linear-gradient(90deg, #38bdf8 0%, #2563eb 48%, #312e81 100%)', color: '#ffffff', cursor: 'pointer', boxSizing: 'border-box', boxShadow: '0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24)', animation: 'profileDownloadPulse 2.4s ease-in-out infinite', transition: 'transform 180ms ease, box-shadow 180ms ease', textAlign: 'center' }}
-          onMouseEnter={event => { event.currentTarget.style.transform = 'translateY(-2px)'; }}
-          onMouseLeave={event => { event.currentTarget.style.transform = 'translateY(0)'; }}
         >
-          <span style={{ width: '28px', height: '28px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9px', background: 'rgba(255,255,255,0.22)' }}><Download size={17} strokeWidth={2.8} /></span>
-          <span style={{ fontSize: '12px', fontWeight: '900', letterSpacing: '0.6px' }}>Download CloudNova APK</span>
+          <span className="apk-download-icon"><Download size={17} strokeWidth={2.8} /></span>
+          <span className="apk-download-title">Download CloudNova APK</span>
         </button>
-        <style>{`@keyframes profileDownloadPulse { 0%, 100% { box-shadow: 0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24); } 50% { box-shadow: 0 9px 25px rgba(37,99,235,0.46), inset 0 1px 0 rgba(255,255,255,0.32); } }`}</style>
       </div>
 
       {/* Projected mining income */}

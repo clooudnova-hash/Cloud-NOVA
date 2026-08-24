@@ -77,6 +77,8 @@ main > div {
 .premium-page {
   position: relative;
   isolation: isolate;
+  width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
   background-image: radial-gradient(circle at 8% 0%, rgba(59, 130, 246, 0.09), transparent 28%), radial-gradient(circle at 92% 18%, rgba(0, 210, 255, 0.07), transparent 24%) !important;
 }
@@ -112,13 +114,49 @@ main > div {
   width: 100%;
 }
 
-.profile-apk-download {
-  background: linear-gradient(135deg, #0b1a50, #153393 58%, #2563eb);
-  border: 1px solid rgba(0, 210, 255, 0.3);
-  box-shadow: 0 8px 22px rgba(29, 78, 216, 0.2), inset 0 1px 0 rgba(255,255,255,0.14);
+.apk-download-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 8px 14px;
+  border: 1px solid rgba(191, 219, 254, 0.72);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(14, 41, 105, 0.88), rgba(37, 99, 235, 0.92) 52%, rgba(8, 145, 178, 0.88));
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 9px 24px rgba(29, 78, 216, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(8, 47, 73, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  animation: apkDownloadPulse 2.8s ease-in-out infinite;
 }
 
-.profile-apk-icon {
+.apk-download-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 25%, rgba(255, 255, 255, 0.34) 48%, transparent 68%);
+  transform: translateX(-125%);
+  animation: apkDownloadShine 3.8s ease-in-out infinite;
+}
+
+.apk-download-button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(224, 242, 254, 0.95);
+  box-shadow: 0 13px 30px rgba(29, 78, 216, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.42), inset 0 -1px 0 rgba(8, 47, 73, 0.28);
+}
+
+.apk-download-button:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.apk-download-icon {
   width: 30px;
   height: 30px;
   display: inline-flex;
@@ -129,7 +167,14 @@ main > div {
   box-shadow: 0 3px 10px rgba(0, 210, 255, 0.3);
 }
 
-.profile-apk-label {
+.apk-download-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+  text-align: left;
+}
+
+.apk-download-eyebrow {
   display: block;
   margin-bottom: 2px;
   color: #67e8f9;
@@ -137,8 +182,220 @@ main > div {
   letter-spacing: 1px;
 }
 
+.apk-download-title {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+}
+
+.home-apk-download {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 450;
+  width: 158px;
+  text-align: left;
+}
+
+.profile-apk-download {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+@keyframes apkDownloadPulse {
+  0%, 100% { box-shadow: 0 9px 24px rgba(29, 78, 216, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(8, 47, 73, 0.28); }
+  50% { box-shadow: 0 12px 29px rgba(29, 78, 216, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.42), inset 0 -1px 0 rgba(8, 47, 73, 0.28); }
+}
+
+@keyframes apkDownloadShine {
+  0%, 34% { transform: translateX(-125%); }
+  62%, 100% { transform: translateX(125%); }
+}
+
 .home-summary-row {
   position: relative;
+}
+
+.cloudnova-video-card {
+  position: relative;
+  isolation: isolate;
+  animation: premiumCardReveal 680ms ease-out both;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.cloudnova-video-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(34, 211, 238, 0.7) !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22), 0 0 24px rgba(14, 165, 233, 0.16) !important;
+}
+
+.cloudnova-video-frame {
+  overflow: hidden;
+}
+
+.cloudnova-video-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.18), transparent 18%, transparent 82%, rgba(37, 99, 235, 0.2));
+  mix-blend-mode: screen;
+}
+
+.cloudnova-video-frame::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -3px;
+  z-index: 2;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #67e8f9, #2563eb, transparent);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.9);
+  animation: videoScanLine 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.cloudnova-video-frame video {
+  transition: transform 500ms ease, filter 500ms ease;
+}
+
+.cloudnova-video-card:hover video {
+  transform: scale(1.018);
+  filter: saturate(1.08) contrast(1.03);
+}
+
+@keyframes videoScanLine {
+  0%, 12% { top: -3px; opacity: 0; }
+  20% { opacity: 1; }
+  82% { opacity: 0.85; }
+  100% { top: calc(100% - 1px); opacity: 0; }
+}
+
+.wallet-balance-card,
+.bonus-hero-card,
+.vip-hero-card,
+.profile-hero-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  animation: premiumCardReveal 520ms ease-out both;
+}
+
+.wallet-balance-card::after,
+.bonus-hero-card::after,
+.vip-hero-card::after,
+.profile-hero-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(115deg, transparent 25%, rgba(255, 255, 255, 0.18) 48%, transparent 68%);
+  transform: translateX(-125%);
+  animation: premiumCardShine 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.wallet-balance-amount {
+  text-shadow: 0 0 20px rgba(191, 219, 254, 0.46);
+  animation: walletBalanceGlow 2.8s ease-in-out infinite;
+}
+
+.wallet-hours-card,
+.wallet-form-card,
+.wallet-history-card,
+.bonus-voucher-card,
+.bonus-tasks-card {
+  animation: premiumCardReveal 620ms ease-out both;
+}
+
+.wallet-hours-card { animation-delay: 80ms; }
+.wallet-form-card,
+.bonus-voucher-card { animation-delay: 150ms; }
+.wallet-history-card,
+.bonus-tasks-card { animation-delay: 220ms; }
+
+.vip-level-card,
+.profile-stat-card {
+  animation: premiumCardReveal 620ms ease-out both;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.vip-level-card:nth-of-type(2),
+.profile-stat-card:nth-of-type(2) { animation-delay: 100ms; }
+
+.vip-level-card:nth-of-type(3),
+.profile-stat-card:nth-of-type(3) { animation-delay: 180ms; }
+
+.vip-level-card:hover,
+.profile-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12) !important;
+}
+
+.bonus-task-row {
+  border-left: 3px solid rgba(37, 99, 235, 0.55);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.bonus-task-row:hover {
+  transform: translateX(3px);
+  border-left-color: #06b6d4;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.1);
+}
+
+@keyframes premiumCardReveal {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes premiumCardShine {
+  0%, 42% { transform: translateX(-125%); }
+  70%, 100% { transform: translateX(125%); }
+}
+
+@keyframes walletBalanceGlow {
+  0%, 100% { opacity: 0.9; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-1px); }
+}
+
+.live-graph-area {
+  transform-origin: center bottom;
+  animation: liveGraphArea 3.2s ease-in-out infinite alternate;
+}
+
+.live-graph-line {
+  stroke-dasharray: 520;
+  stroke-dashoffset: 520;
+  animation: liveGraphDraw 3.8s ease-in-out infinite alternate, liveGraphPulse 3.2s ease-in-out infinite alternate;
+}
+
+.live-graph-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: liveGraphDot 2s ease-in-out infinite;
+}
+
+@keyframes liveGraphDraw {
+  0% { stroke-dashoffset: 520; }
+  45%, 100% { stroke-dashoffset: 0; }
+}
+
+@keyframes liveGraphPulse {
+  0%, 100% { opacity: 0.78; }
+  50% { opacity: 1; }
+}
+
+@keyframes liveGraphArea {
+  0% { opacity: 0.45; transform: scaleY(0.94); }
+  100% { opacity: 0.82; transform: scaleY(1.04); }
+}
+
+@keyframes liveGraphDot {
+  0%, 100% { opacity: 0.55; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.45); }
 }
 
 [class~="min-h-screen"][class~="bg-[#f5f8ff]"] {
@@ -249,6 +506,33 @@ div.bg-white.rounded-2xl:hover {
 }
 
 @media (max-width: 640px) {
+  .premium-page p,
+  .premium-page h1,
+  .premium-page h2,
+  .premium-page h3,
+  .premium-page h4,
+  .premium-page span,
+  .premium-page strong,
+  .premium-page td,
+  .premium-page th {
+    overflow-wrap: anywhere;
+  }
+
+  .premium-page input,
+  .premium-page select,
+  .premium-page textarea {
+    min-width: 0;
+  }
+
+  .premium-page .flex > * {
+    min-width: 0;
+  }
+
+  .premium-page [style*="fontFamily: monospace"] {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   .home-top-zone {
     padding: 18px 14px 32px !important;
   }
