@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Download } from 'lucide-react';
 
 export default function Home() {
   const [btcPrice, setBtcPrice] = useState(89878.44);
@@ -86,6 +87,51 @@ export default function Home() {
 
   return (
     <div className="premium-page" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
+
+      <style>{`\n+        @keyframes homeDownloadPulse {\n+          0%, 100% { box-shadow: 0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24); }\n+          50% { box-shadow: 0 9px 25px rgba(37,99,235,0.46), inset 0 1px 0 rgba(255,255,255,0.32); }\n+        }\n+      `}</style>
+      <button
+        type="button"
+        aria-label="Download CloudNova APK"
+        onClick={() => window.location.assign(`${window.location.origin}/api/download/apk`)}
+        style={{
+          position: 'fixed',
+          top: '136px',
+          right: '12px',
+          zIndex: 450,
+          width: '174px',
+          minHeight: '58px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 10px',
+          border: '1px solid rgba(147,197,253,0.55)',
+          borderRadius: '14px',
+          background: 'linear-gradient(135deg, #38bdf8 0%, #2563eb 50%, #312e81 100%)',
+          color: '#ffffff',
+          cursor: 'pointer',
+          boxSizing: 'border-box',
+          boxShadow: '0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24)',
+          animation: 'homeDownloadPulse 2.4s ease-in-out infinite',
+          transition: 'transform 180ms ease, box-shadow 180ms ease',
+          textAlign: 'left'
+        }}
+        onMouseEnter={event => {
+          event.currentTarget.style.transform = 'translateY(-2px)';
+          event.currentTarget.style.boxShadow = '0 11px 28px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.32)';
+        }}
+        onMouseLeave={event => {
+          event.currentTarget.style.transform = 'translateY(0)';
+          event.currentTarget.style.boxShadow = '0 7px 20px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.24)';
+        }}
+      >
+        <span style={{ width: '32px', height: '32px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', background: 'rgba(255,255,255,0.22)' }}>
+          <Download size={19} strokeWidth={2.8} />
+        </span>
+        <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
+          <span style={{ fontSize: '8px', fontWeight: '900', letterSpacing: '1.2px' }}>GET THE APP</span>
+          <span style={{ marginTop: '4px', fontSize: '12px', fontWeight: '900' }}>Download CloudNova APK</span>
+        </span>
+      </button>
 
       {/* UPPER BLUE ZONE */}
       <div className="home-top-zone" style={{ backgroundImage: 'linear-gradient(to bottom, #0b1a50 0%, #153393 100%)', padding: '24px 40px 40px 40px', color: '#ffffff', position: 'relative' }}>
