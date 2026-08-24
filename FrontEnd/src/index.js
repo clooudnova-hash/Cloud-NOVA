@@ -1,5 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { Capacitor } from '@capacitor/core';
+import { Http } from '@capacitor-community/http';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
@@ -8,6 +10,19 @@ const apiBaseUrl = (process.env.REACT_APP_API_URL || '').replace(/\/$/, '');
 const nativeFetch = window.fetch.bind(window);
 window.fetch = (input, init) => {
   if (typeof input === 'string' && input.startsWith('/api/')) {
+    if (Capacitor.isNativePlatform()) {
+      const headers = init?.headers || {};
+      const body = init?.body ? JSON.parse(init.body) : undefined;
+      return Http.request({
+        url: `${apiBaseUrl}${input}`,
+        method: init?.method || 'GET',
+        headers,
+        data: body,
+      }).then(response => new Response(
+        typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
+        { status: response.status, headers: response.headers }
+      ));
+    }
     return nativeFetch(`${apiBaseUrl}${input}`, init);
   }
   return nativeFetch(input, init);
