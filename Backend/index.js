@@ -42,7 +42,7 @@ if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
 }
 const SIGNING_SECRET = JWT_SECRET || 'CloudNova-development-only';
 const isGmailAddress = email => /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@gmail\.com$/i.test(String(email || '').trim());
-const isAllowedLoginEmail = email => isGmailAddress(email) || String(email || '').trim().toLowerCase() === 'noor@cloudnova.com';
+const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
 
 
 const users = [];
@@ -316,7 +316,7 @@ app.post('/api/auth/login', (req, res) => {
   try {
     const { email, password } = req.body;
     const normalizedEmail = String(email || '').toLowerCase().trim();
-    if (!isAllowedLoginEmail(normalizedEmail)) return res.status(400).json({ message: 'Please login with a valid email address.' });
+    if (!isValidEmail(normalizedEmail)) return res.status(400).json({ message: 'Please login with a valid email address.' });
     const user = users.find(u => u.email === normalizedEmail);
     if (!user || !bcrypt.compareSync(password, user.password)) return res.status(400).json({ message: 'Invalid Login Credentials!' });
     if (user.paused) return res.status(403).json({ message: 'This account is paused. Contact an administrator.' });

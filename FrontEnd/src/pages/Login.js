@@ -17,8 +17,8 @@ export default function Login() {
     e.preventDefault();
     setErrorMessage('');
     const normalizedEmail = formData.email.trim().toLowerCase();
-    const isAllowedEmail = /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@gmail\.com$/i.test(normalizedEmail) || normalizedEmail === 'noor@cloudnova.com';
-    if (!isAllowedEmail) { setErrorMessage('Please login with a valid email address.'); return; }
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+    if (!isValidEmail) { setErrorMessage('Please login with a valid email address.'); return; }
     setLoading(true);
     try {
       const response = await fetch('/api/auth/login', {
