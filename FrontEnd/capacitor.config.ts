@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Cloud Nova',
   webDir: 'build',
   server: {
-    url: 'https://cloudyyy.up.railway.app',
+    url: 'https://clooudnova.up.railway.app',
     cleartext: false
   }
 };
