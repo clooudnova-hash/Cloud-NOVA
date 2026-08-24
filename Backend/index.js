@@ -857,6 +857,26 @@ io.on('connection', (socket) => {
   socket.on('sendMessage', (data) => { io.emit('receiveMessage', data); });
 });
 
+// APK Download Endpoint
+app.get('/api/download/apk', (req, res) => {
+  try {
+    const apkPath = path.join(__dirname, 'app-release.apk');
+    // If APK exists locally, serve it
+    if (fs.existsSync(apkPath)) {
+      res.download(apkPath, 'CloudNova.apk', (err) => {
+        if (err) console.error('Error downloading APK:', err.message);
+      });
+    } else {
+      res.status(503).json({
+        success: false,
+        message: 'APK is not available on this deployment yet.'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Catch-all: serve React frontend for any non-API route
 app.get('*', (req, res) => {
   res.sendFile(path.join(FRONTEND_BUILD, 'index.html'));

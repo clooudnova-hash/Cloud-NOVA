@@ -7,6 +7,11 @@ export default function Home() {
   const [collecting, setCollecting] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
 
+  const downloadApk = () => {
+    const downloadUrl = `${window.location.origin}/api/download/apk`;
+    window.location.assign(downloadUrl);
+  };
+
   const formatDuration = milliseconds => {
     const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
     const days = Math.floor(totalSeconds / 86400);
@@ -88,7 +93,51 @@ export default function Home() {
     <div className="premium-page" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
 
       {/* UPPER BLUE ZONE */}
-      <div className="home-top-zone" style={{ backgroundImage: 'linear-gradient(to bottom, #0b1a50 0%, #153393 100%)', padding: '24px 40px 40px 40px', color: '#ffffff' }}>
+      <div className="home-top-zone" style={{ backgroundImage: 'linear-gradient(to bottom, #0b1a50 0%, #153393 100%)', padding: '24px 40px 40px 40px', color: '#ffffff', position: 'relative' }}>
+        {/* Download APK Button - Fixed Right Corner with Animation */}
+        <button
+          type="button"
+          onClick={downloadApk}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '40px',
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%)',
+            border: '2px solid rgba(255,255,255,0.2)',
+            color: '#fff',
+            fontSize: '13px',
+            fontWeight: '800',
+            padding: '12px 20px',
+            borderRadius: '25px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 8px 24px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            animation: 'pulseDownload 2s ease-in-out infinite',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.boxShadow = '0 12px 32px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.3)';
+            e.target.style.transform = 'translateY(-2px)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.boxShadow = '0 8px 24px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.2)';
+            e.target.style.transform = 'translateY(0)';
+          }}>
+          📲 Download APK
+        </button>
+        
+        <style>{`
+          @keyframes pulseDownload {
+            0%, 100% { box-shadow: 0 8px 24px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.2); }
+            50% { box-shadow: 0 8px 28px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.3); }
+          }
+        `}</style>
+
         <div className="home-summary-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px', flexWrap: 'wrap' }}>
           <div>
             <p style={{ color: '#ffb100', fontSize: '13px', fontWeight: 'bold', margin: '0 0 12px 0' }}>

@@ -4,6 +4,10 @@ import { useNavigate } from 'react-router-dom';
 const publicAppUrl = (process.env.REACT_APP_PUBLIC_APP_URL || window.location.origin).replace(/\/$/, '');
 
 const Profile = () => {
+  const downloadApk = () => {
+    const downloadUrl = `${window.location.origin}/api/download/apk`;
+    window.location.assign(downloadUrl);
+  };
   const navigate = useNavigate();
   const [showBonus, setShowBonus] = useState(false);
   const [dashboard, setDashboard] = useState(null);
@@ -229,6 +233,62 @@ const Profile = () => {
           <li><span className="text-cyan-500 font-black mr-1">•</span> Level 2 team deposits earn <strong className="text-cyan-600">4%</strong> commission.</li>
           <li><span className="text-emerald-500 font-black mr-1">•</span> Level 3 team deposits earn <strong className="text-emerald-600">2%</strong> commission.</li>
         </ul>
+      </div>
+
+      {/* Download APK Section */}
+      <div className="mx-4 mb-4" style={{ perspective: '1000px' }}>
+        <button
+          type="button"
+          onClick={downloadApk}
+          style={{
+            width: '100%',
+            background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #1d4ed8 100%)',
+            color: '#fff',
+            borderRadius: '20px',
+            border: '2px solid rgba(255,255,255,0.15)',
+            padding: '16px 20px',
+            fontWeight: '900',
+            fontSize: '14px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            boxShadow: '0 10px 30px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
+            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            animation: 'downloadPulse 2.5s ease-in-out infinite',
+            transformStyle: 'preserve-3d'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.boxShadow = '0 14px 40px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.3)';
+            e.target.style.transform = 'translateY(-3px) scale(1.02)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.boxShadow = '0 10px 30px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.2)';
+            e.target.style.transform = 'translateY(0) scale(1)';
+          }}>
+          <span style={{ fontSize: '18px', animation: 'bounce 2s ease-in-out infinite' }}>📲</span>
+          <span>Download Cloud Nova APK</span>
+        </button>
+        <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '10px', marginBottom: 0, textAlign: 'center', fontWeight: '500' }}>
+          Get the mobile app and access your mining account anytime, anywhere.
+        </p>
+        <style>{`
+          @keyframes downloadPulse {
+            0%, 100% {
+              box-shadow: 0 10px 30px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+            }
+            50% {
+              box-shadow: 0 10px 35px rgba(37,99,235,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+            }
+          }
+          @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+          }
+        `}</style>
       </div>
 
       {/* Menu */}
