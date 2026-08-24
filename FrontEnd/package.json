@@ -21,6 +21,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "android:debug": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

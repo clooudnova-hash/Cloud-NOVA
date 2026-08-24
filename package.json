@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node Backend/index.js",
     "dev": "node Backend/index.js",
-    "build": "npm install --prefix Backend && npm install --prefix FrontEnd && cd FrontEnd && npm run build"
+    "build": "npm install --prefix Backend && npm install --prefix FrontEnd && cd FrontEnd && npm run build",
+    "android:debug": "npm --prefix FrontEnd run android:debug"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
