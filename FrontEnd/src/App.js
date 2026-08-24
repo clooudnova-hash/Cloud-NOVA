@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { House, Zap, WalletCards, Gift, Crown, UserRound } from 'lucide-react';
+import { House, Zap, WalletCards, Gift, Crown, UserRound, Download } from 'lucide-react';
 
 import Home from './pages/Home';
 import MiningPlans from './pages/MiningPlans';
@@ -24,6 +24,7 @@ function AppLayout() {
   const [activityNotice, setActivityNotice] = useState(null);
   const hideChrome = ['/login', '/register', '/signup'].includes(currentPage);
   const hideHeader = hideChrome || currentPage === '/plans';
+  const downloadApk = () => window.location.assign(`${window.location.origin}/api/download/apk`);
 
   useEffect(() => {
     fetch('/api/public/stats')
@@ -177,6 +178,56 @@ function AppLayout() {
           </div>
         </div>
       )}
+
+      <>
+        <style>{`
+          @keyframes cloudnovaDownloadPulse {
+            0%, 100% { box-shadow: 0 10px 28px rgba(37,99,235,0.32), inset 0 1px 0 rgba(255,255,255,0.24); }
+            50% { box-shadow: 0 12px 34px rgba(37,99,235,0.52), inset 0 1px 0 rgba(255,255,255,0.34); }
+          }
+        `}</style>
+        <button
+          type="button"
+          aria-label="Download CloudNova APK"
+          onClick={downloadApk}
+          style={{
+            position: 'fixed',
+            top: '96px',
+            right: '16px',
+            zIndex: 450,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            minWidth: '178px',
+            padding: '11px 15px',
+            border: '1px solid rgba(147,197,253,0.55)',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #38bdf8 0%, #2563eb 48%, #312e81 100%)',
+            color: '#ffffff',
+            cursor: 'pointer',
+            boxShadow: '0 10px 28px rgba(37,99,235,0.32), inset 0 1px 0 rgba(255,255,255,0.24)',
+            animation: 'cloudnovaDownloadPulse 2.4s ease-in-out infinite',
+            transition: 'transform 180ms ease, box-shadow 180ms ease',
+            textAlign: 'left'
+          }}
+          onMouseEnter={event => {
+            event.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+            event.currentTarget.style.boxShadow = '0 14px 38px rgba(37,99,235,0.55), inset 0 1px 0 rgba(255,255,255,0.34)';
+          }}
+          onMouseLeave={event => {
+            event.currentTarget.style.transform = 'translateY(0) scale(1)';
+            event.currentTarget.style.boxShadow = '0 10px 28px rgba(37,99,235,0.32), inset 0 1px 0 rgba(255,255,255,0.24)';
+          }}
+        >
+          <span style={{ width: '38px', height: '38px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: 'rgba(255,255,255,0.22)' }}>
+            <Download size={22} strokeWidth={2.8} />
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+            <span style={{ fontSize: '10px', fontWeight: '900', letterSpacing: '1.5px' }}>GET THE APP</span>
+            <span style={{ marginTop: '4px', fontSize: '14px', fontWeight: '900' }}>Download CloudNova APK</span>
+          </span>
+        </button>
+      </>
 
       {!hideChrome && (
         <nav style={{
