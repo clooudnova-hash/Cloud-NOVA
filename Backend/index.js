@@ -513,12 +513,7 @@ app.post('/api/bonus/claim', verifyToken, (req, res) => {
       if (allowedUserIds.length > 0 && !allowedUserIds.includes(user.id)) {
         return res.status(403).json({ message: 'This bonus code is not available for your account.' });
       }
-      const startsAt = new Date(voucher.startsAt).getTime();
-      const expiresAt = new Date(voucher.expiresAt).getTime();
       const usedCount = bonusClaims.filter(claim => claim.code === voucher.code).length;
-      if (!Number.isFinite(startsAt) || !Number.isFinite(expiresAt) || now < startsAt || now > expiresAt) {
-        return res.status(400).json({ message: 'This bonus code is outside its active time window.' });
-      }
       if (usedCount >= voucher.maxUsers) {
         return res.status(400).json({ message: 'This bonus code has reached its user limit.' });
       }
@@ -803,14 +798,12 @@ app.post('/api/admin/bonus/add', verifyToken, (req, res) => {
   try {
     const { code, bonus, startsAt, expiresAt, maxUsers, allowedUserIds } = req.body;
     const reward = parseFloat(bonus);
-    const startDate = parsePakistanDateTime(startsAt);
-    const expiryDate = parsePakistanDateTime(expiresAt);
     const userLimit = parseInt(maxUsers, 10);
     const restrictedUsers = Array.isArray(allowedUserIds) ? [...new Set(allowedUserIds.map(id => String(id).trim()).filter(Boolean))] : [];
     const exactCode = String(code || '').trim();
-    if (!exactCode || !Number.isFinite(reward) || reward <= 0 || !Number.isFinite(startDate.getTime()) || !Number.isFinite(expiryDate.getTime()) || startDate <= new Date() || expiryDate <= startDate || !Number.isInteger(userLimit) || userLimit < 1) return res.status(400).json({ message: 'Enter a valid future Pakistan-time window, reward, and user limit.' });
+    if (!exactCode || !Number.isFinite(reward) || reward <= 0 || !Number.isInteger(userLimit) || userLimit < 1) return res.status(400).json({ message: 'Enter a valid code, reward, and user limit.' });
     if (couponVouchers.find(c => c.code === exactCode)) return res.status(400).json({ message: 'Code already exists' });
-    couponVouchers.push({ code: exactCode, bonus: reward, startsAt: startDate.toISOString(), expiresAt: expiryDate.toISOString(), maxUsers: userLimit, allowedUserIds: restrictedUsers, active: true });
+    couponVouchers.push({ code: exactCode, bonus: reward, maxUsers: userLimit, allowedUserIds: restrictedUsers, active: true });
     return res.status(201).json({ success: true, message: 'Bonus code added!' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });

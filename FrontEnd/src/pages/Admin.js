@@ -84,7 +84,7 @@ export default function Admin() {
   };
 
   const addCode = async () => {
-    if (!newCode.code || !newCode.bonus || !newCode.startsAt || !newCode.expiresAt || !newCode.maxUsers) { setMsg('Code, amount, start/end time aur user limit sab chahiye'); return; }
+    if (!newCode.code || !newCode.bonus || !newCode.maxUsers) { setMsg('Code, amount aur user limit sab chahiye'); return; }
     const res = await api('/api/admin/bonus/add', {
       method: 'POST',
       body: {
@@ -614,16 +614,6 @@ export default function Admin() {
                     placeholder="e.g. 25" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '14px', outline: 'none', width: '120px' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase' }}>Active From (Pakistan Time)</label>
-                  <input type="datetime-local" value={newCode.startsAt} onChange={e => setNewCode(p => ({ ...p, startsAt: e.target.value }))}
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '12px', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase' }}>Active Until (Pakistan Time)</label>
-                  <input type="datetime-local" value={newCode.expiresAt} onChange={e => setNewCode(p => ({ ...p, expiresAt: e.target.value }))}
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '12px', outline: 'none' }} />
-                </div>
-                <div>
                   <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase' }}>User Limit</label>
                   <input type="number" min="1" value={newCode.maxUsers} onChange={e => setNewCode(p => ({ ...p, maxUsers: e.target.value }))}
                     placeholder="e.g. 100" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', padding: '10px 14px', color: '#fff', fontSize: '14px', outline: 'none', width: '120px' }} />
@@ -650,7 +640,6 @@ export default function Admin() {
                           <span style={{ fontSize: '16px', fontWeight: '800', letterSpacing: '2px', color: c.active ? '#7dd3fc' : 'rgba(255,255,255,0.3)' }}>{c.code}</span>
                           <span style={{ fontSize: '14px', fontWeight: '700', color: '#10b981' }}>${c.bonus}</span>
                           <span style={{ fontSize: '11px', color: '#fbbf24' }}>{c.claimedCount || 0}/{c.maxUsers} users</span>
-                          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>{c.startsAt ? new Date(c.startsAt).toLocaleString() : '—'} to {c.expiresAt ? new Date(c.expiresAt).toLocaleString() : '—'}</span>
                           {c.allowedUserIds?.length > 0 && <span style={{ fontSize: '10px', color: '#c4b5fd' }}>Restricted: {c.allowedUserIds.length} users</span>}
                           <span style={{ fontSize: '11px', background: c.active ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.1)', color: c.active ? '#34d399' : '#f87171', borderRadius: '6px', padding: '3px 8px', fontWeight: '700' }}>
                             {c.active ? 'Active' : 'Used/Inactive'}
