@@ -351,6 +351,7 @@ app.get('/api/user/dashboard', verifyToken, (req, res) => {
     return res.status(200).json({
       fullName: user.fullName, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: user.myReferralCode,
       username: user.username, referredBy: user.referredBy, paused: user.paused,
+      allowDepositOutsideHours: Boolean(user.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(user.allowWithdrawalOutsideHours),
       balance: wallet.balance, baseHashrate: wallet.baseHashrate, effectiveHashrate: wallet.effectiveHashrate, minersCount: wallet.minersCount,
       team: getTeamTree(user.id), miningContracts: getMiningSummary(user.id), incomeSummary: getIncomeSummary(user.id)
     });

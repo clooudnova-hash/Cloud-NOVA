@@ -16,6 +16,7 @@ const Wallet = () => {
   const [transactionNotice, setTransactionNotice] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [balance, setBalance] = useState(null);
+  const [timeAccess, setTimeAccess] = useState({ allowDepositOutsideHours: false, allowWithdrawalOutsideHours: false });
 
   const adminDetails = {
     EasyPaisa: { name: 'HAMZA ALI', number: '0314-0033710' },
@@ -37,7 +38,7 @@ const Wallet = () => {
     // Fetch balance
     fetch('/api/user/dashboard', { headers: { authorization: token } })
       .then(r => r.json())
-      .then(d => { if (d.balance !== undefined) setBalance(parseFloat(d.balance).toFixed(2)); })
+      .then(d => { if (d.balance !== undefined) setBalance(parseFloat(d.balance).toFixed(2)); setTimeAccess({ allowDepositOutsideHours: Boolean(d.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(d.allowWithdrawalOutsideHours) }); })
       .catch(() => {});
     // Fetch history
     fetch('/api/wallet/history', { headers: { authorization: token } })
@@ -74,7 +75,7 @@ const Wallet = () => {
 
   const handleDeposit = async (e) => {
     e.preventDefault();
-    if (!isWithinBusinessHours(false)) { showBusinessHours(false); return; }
+    if (!timeAccess.allowDepositOutsideHours && !isWithinBusinessHours(false)) { showBusinessHours(false); return; }
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (!amount) { showMsg('Please enter amount.', 'error'); return; }
     if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 10) { showMsg('Minimum deposit amount is $10.00.', 'error'); return; }
@@ -96,7 +97,7 @@ const Wallet = () => {
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
-    if (!isWithinBusinessHours(true)) { showBusinessHours(true); return; }
+    if (!timeAccess.allowWithdrawalOutsideHours && !isWithinBusinessHours(true)) { showBusinessHours(true); return; }
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (Number.parseFloat(balance || '0') <= 0) { showTransactionNotice('rejected', 'Your wallet balance is $0.00. Add funds before requesting a withdrawal.'); return; }
     if (!amount || !accountNumber || !accountName) { showMsg('Please fill all fields.', 'error'); return; }
