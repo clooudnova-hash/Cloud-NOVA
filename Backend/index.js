@@ -393,7 +393,7 @@ app.post('/api/mining/collect', verifyToken, (req, res) => {
 
 app.post('/api/wallet/deposit', verifyToken, (req, res) => {
   try {
-    if (!isWithinBusinessHours(false)) return res.status(400).json({ message: 'Deposits are accepted from 10:00 AM to 09:00 PM Pakistan time.' });
+    if (!isWithinBusinessHours(false) && !req.currentUser.allowDepositOutsideHours) return res.status(400).json({ message: 'Deposits are accepted from 10:00 AM to 09:00 PM Pakistan time.' });
     const { txid, network, amount, proofImage } = req.body;
     const depositAmount = parseFloat(amount);
     if (network !== 'EasyPaisa') return res.status(400).json({ message: 'Deposits are available only through EasyPaisa.' });
@@ -432,7 +432,7 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
 
 app.post('/api/wallet/withdraw', verifyToken, (req, res) => {
   try {
-    if (!isWithinBusinessHours(true)) return res.status(400).json({ message: 'Withdrawals are accepted Monday to Friday, 10:00 AM to 09:00 PM Pakistan time.' });
+    if (!isWithinBusinessHours(true) && !req.currentUser.allowWithdrawalOutsideHours) return res.status(400).json({ message: 'Withdrawals are accepted Monday to Friday, 10:00 AM to 09:00 PM Pakistan time.' });
     const { address, accountName, bankName, network, amount } = req.body;
     const wallet = wallets.find(w => w.userId === req.user.id);
     const totalDeduction = parseFloat(amount);
@@ -641,7 +641,7 @@ app.get('/api/admin/users', verifyToken, (req, res) => {
     const vip = syncVipLevel(u);
     const w = wallets.find(wl => wl.userId === u.id) || {};
     const upline = users.find(user => user.id === u.referredBy);
-    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0 };
+    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0, allowDepositOutsideHours: Boolean(u.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(u.allowWithdrawalOutsideHours), miningContracts: getMiningSummary(u.id) };
   });
   return res.status(200).json(result);
 });
@@ -717,6 +717,15 @@ app.post('/api/admin/users/pause', verifyToken, (req, res) => {
   if (user.id === req.user.id) return res.status(400).json({ message: 'You cannot pause the current admin account.' });
   user.paused = req.body.paused === undefined ? !user.paused : Boolean(req.body.paused);
   return res.status(200).json({ success: true, paused: user.paused, message: user.paused ? 'User paused.' : 'User resumed.' });
+});
+
+app.post('/api/admin/users/time-access', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  const user = users.find(item => item.id === req.body.userId);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  user.allowDepositOutsideHours = Boolean(req.body.allowDepositOutsideHours);
+  user.allowWithdrawalOutsideHours = Boolean(req.body.allowWithdrawalOutsideHours);
+  return res.status(200).json({ success: true, message: `Time access updated for ${user.username}.`, allowDepositOutsideHours: user.allowDepositOutsideHours, allowWithdrawalOutsideHours: user.allowWithdrawalOutsideHours });
 });
 
 app.delete('/api/admin/users/:userId', verifyToken, (req, res) => {

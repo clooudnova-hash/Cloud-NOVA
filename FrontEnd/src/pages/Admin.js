@@ -47,6 +47,7 @@ export default function Admin() {
   const [vipSelection, setVipSelection] = useState({});
   const [weeklyWinner, setWeeklyWinner] = useState({ name: '', amount: '', expiresAt: '', winners: [{ name: '', amount: '' }, { name: '', amount: '' }, { name: '', amount: '' }] });
   const [depositSettings, setDepositSettings] = useState({ autoApproveDeposits: true, manualApproval: false });
+  const [timeAccess, setTimeAccess] = useState({});
 
   const userRole = localStorage.getItem('userRole') || '';
 
@@ -224,6 +225,16 @@ export default function Admin() {
     if (res.success) setDepositSettings(res);
     setLoading(false);
     setTimeout(() => setMsg(''), 4000);
+  };
+
+  const updateTimeAccess = async user => {
+    setLoading(true);
+    const access = timeAccess[user.id] || {};
+    const res = await api('/api/admin/users/time-access', { method: 'POST', body: { userId: user.id, allowDepositOutsideHours: Boolean(access.deposit ?? user.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(access.withdrawal ?? user.allowWithdrawalOutsideHours) } });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setLoading(false);
+    setTimeout(() => setMsg(''), 3000);
   };
 
   const tabs = ['dashboard', 'transactions', 'users', 'bonus', 'winner', 'tasks'];
@@ -513,6 +524,22 @@ export default function Admin() {
 
                   {/* Admin Controls */}
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '14px', alignItems: 'flex-end' }}>
+
+                    <div style={{ minWidth: '270px' }}>
+                      <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase' }}>Outside Hours Access</label>
+                      <div style={{ display: 'grid', gap: '5px' }}>
+                        <label style={{ fontSize: '11px', color: '#cbd5e1' }}><input type="checkbox" checked={Boolean(timeAccess[u.id]?.deposit ?? u.allowDepositOutsideHours)} onChange={e => setTimeAccess(prev => ({ ...prev, [u.id]: { ...(prev[u.id] || {}), deposit: e.target.checked } }))} /> Allow deposit anytime</label>
+                        <label style={{ fontSize: '11px', color: '#cbd5e1' }}><input type="checkbox" checked={Boolean(timeAccess[u.id]?.withdrawal ?? u.allowWithdrawalOutsideHours)} onChange={e => setTimeAccess(prev => ({ ...prev, [u.id]: { ...(prev[u.id] || {}), withdrawal: e.target.checked } }))} /> Allow withdrawal anytime</label>
+                        <button onClick={() => updateTimeAccess(u)} disabled={loading} style={btn('#0ea5e9')}>Save Time Access</button>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: '1 1 320px', minWidth: '280px' }}>
+                      <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase' }}>Purchased Machines ({u.miningContracts?.length || 0})</label>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {u.miningContracts?.length ? u.miningContracts.map(machine => <span key={machine.id} style={{ background: machine.status === 'active' ? 'rgba(16,185,129,0.14)' : 'rgba(148,163,184,0.12)', border: `1px solid ${machine.status === 'active' ? 'rgba(52,211,153,0.3)' : 'rgba(148,163,184,0.2)'}`, color: machine.status === 'active' ? '#6ee7b7' : '#94a3b8', borderRadius: '7px', padding: '5px 8px', fontSize: '10px', fontWeight: '700' }}>{machine.tier} · ${Number(machine.cost).toFixed(2)} · {machine.status}</span>) : <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>No machine purchased</span>}
+                      </div>
+                    </div>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <button onClick={() => addBalance(u)} disabled={loading} style={btn('#10b981')}>Add Balance</button>
