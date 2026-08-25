@@ -46,6 +46,7 @@ export default function Admin() {
   const [resetPassword, setResetPassword] = useState({});
   const [vipSelection, setVipSelection] = useState({});
   const [weeklyWinner, setWeeklyWinner] = useState({ name: '', amount: '', expiresAt: '', winners: [{ name: '', amount: '' }, { name: '', amount: '' }, { name: '', amount: '' }] });
+  const [depositSettings, setDepositSettings] = useState({ autoApproveDeposits: true, manualApproval: false });
 
   const userRole = localStorage.getItem('userRole') || '';
 
@@ -55,13 +56,14 @@ export default function Admin() {
   }, []); // eslint-disable-line
 
   const loadAll = useCallback(async () => {
-    const [m, tx, u, b, tc, winner] = await Promise.all([
+    const [m, tx, u, b, tc, winner, deposits] = await Promise.all([
       api('/api/admin/metrics'),
       api('/api/admin/transactions'),
       api('/api/admin/users'),
       api('/api/admin/bonus'),
       api('/api/admin/task-claims'),
       api('/api/admin/weekly-winner'),
+      api('/api/admin/deposit-settings'),
     ]);
     setMetrics(m);
     setTransactions(Array.isArray(tx) ? tx.reverse() : []);
@@ -69,6 +71,7 @@ export default function Admin() {
     setBonusCodes(Array.isArray(b) ? b : []);
     setTaskClaims(Array.isArray(tc) ? tc : []);
     if (winner?.name) setWeeklyWinner(winner);
+    if (deposits && typeof deposits.autoApproveDeposits === 'boolean') setDepositSettings(deposits);
   }, []);
 
   const txAction = async (id, action) => {
@@ -214,6 +217,15 @@ export default function Admin() {
     setTimeout(() => setMsg(''), 4000);
   };
 
+  const updateDepositSettings = async autoApproveDeposits => {
+    setLoading(true);
+    const res = await api('/api/admin/deposit-settings', { method: 'PUT', body: { autoApproveDeposits } });
+    setMsg(res.message || res.error);
+    if (res.success) setDepositSettings(res);
+    setLoading(false);
+    setTimeout(() => setMsg(''), 4000);
+  };
+
   const tabs = ['dashboard', 'transactions', 'users', 'bonus', 'winner', 'tasks'];
 
   return (
@@ -273,6 +285,15 @@ export default function Admin() {
               <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '14px' }}>Winner Rankings</div>
               <div style={{ display: 'grid', gap: '10px' }}>{weeklyWinner.winners.map((winner, index) => <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{ width: '34px', color: '#fbbf24', fontWeight: '800' }}>{index + 1}.</span><input value={winner.name} onChange={e => setWeeklyWinner(prev => ({ ...prev, winners: prev.winners.map((item, itemIndex) => itemIndex === index ? { ...item, name: e.target.value } : item) }))} placeholder={`Winner ${index + 1}`} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /><input type="number" min="0" value={winner.amount} onChange={e => setWeeklyWinner(prev => ({ ...prev, winners: prev.winners.map((item, itemIndex) => itemIndex === index ? { ...item, amount: e.target.value } : item) }))} placeholder="Amount" style={{ width: '120px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>)}</div>
               <button type="button" onClick={updateWeeklyWinner} disabled={loading} style={{ ...btn('linear-gradient(135deg, #00b4ff, #7c3aed)'), marginTop: '18px', padding: '11px 22px' }}>Save Weekly Winner</button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'dashboard' && (
+          <div style={{ ...card, marginBottom: '24px', border: '1px solid rgba(0,180,255,0.25)', background: 'linear-gradient(135deg, rgba(0,180,255,0.08), rgba(124,58,237,0.08))' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+              <div><div style={{ fontSize: '15px', fontWeight: '800', color: '#fff' }}>Deposit Approval Settings</div><div style={{ marginTop: '5px', color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>{depositSettings.autoApproveDeposits ? 'New deposits approve automatically.' : 'New deposits wait for admin review.'}</div></div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}><button type="button" onClick={() => updateDepositSettings(true)} disabled={loading} style={btn(depositSettings.autoApproveDeposits ? '#10b981' : 'rgba(255,255,255,0.1)')}>Auto Approve: {depositSettings.autoApproveDeposits ? 'ON' : 'OFF'}</button><button type="button" onClick={() => updateDepositSettings(false)} disabled={loading} style={btn(!depositSettings.autoApproveDeposits ? '#f59e0b' : 'rgba(255,255,255,0.1)')}>Manual Approval: {!depositSettings.autoApproveDeposits ? 'ON' : 'OFF'}</button></div>
             </div>
           </div>
         )}

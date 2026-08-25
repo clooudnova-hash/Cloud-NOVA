@@ -55,8 +55,9 @@ const bonusClaims = [];
 const emailOtpCache = [];
 const taskClaims = [];
 const weeklyWinnerSettings = [];
+const depositSettings = [];
 const stateFile = process.env.CLOUDNOVA_DATA_FILE || path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data'), 'cloudnova-state.json');
-const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims, weeklyWinnerSettings };
+const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims, weeklyWinnerSettings, depositSettings };
 const database = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 const restoreState = () => {
@@ -153,6 +154,7 @@ const initializeState = async () => {
     name: 'Hamza Khan', amount: 250, expiresAt: '2000-01-01T00:00:00.000Z',
     winners: [{ rank: 1, name: 'Hamza Khan', amount: 250 }, { rank: 2, name: 'Ali Raza', amount: 180 }, { rank: 3, name: 'Usman Ahmed', amount: 120 }]
   });
+  if (!depositSettings.length) depositSettings.push({ autoApproveDeposits: true });
   if (!restoredState && !users.some(user => user.email === 'noor@cloudnova.com')) {
     users.push({ id: 'usr_mock1', username: 'noor', fullName: 'Noor Zaman', email: 'noor@cloudnova.com', password: mockPasswordHash, role: 'admin', myReferralCode: 'NOOR99', referredBy: '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
     wallets.push({ userId: 'usr_mock1', balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
@@ -398,7 +400,7 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
     const taxAmount = Number((depositAmount * DEPOSIT_TAX_RATE).toFixed(4));
     const totalToPay = Number((depositAmount + taxAmount).toFixed(4));
     const netAmount = Number(depositAmount.toFixed(4));
-    transactions.push({
+    const deposit = {
       id: 'tx_' + Math.random().toString(36).substring(2, 9),
       userId: req.user.id,
       type: 'deposit',
@@ -408,11 +410,19 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
       netAmount,
       network,
       txid,
-      status: 'pending',
+      status: depositSettings[0]?.autoApproveDeposits ? 'completed' : 'pending',
       date: new Date().toISOString(),
       proofImage
-    });
-    return res.status(201).json({ success: true, message: 'Deposit proof hash queued successfully', taxAmount, totalToPay, netAmount });
+    };
+    transactions.push(deposit);
+    if (deposit.status === 'completed') {
+      const wallet = wallets.find(item => item.userId === req.user.id);
+      if (wallet) wallet.balance = Number((wallet.balance + netAmount).toFixed(4));
+      const depositedUser = users.find(user => user.id === req.user.id);
+      if (depositedUser) syncVipLevel(depositedUser);
+      creditReferralRewards(deposit);
+    }
+    return res.status(201).json({ success: true, message: deposit.status === 'completed' ? 'Deposit approved automatically and balance updated.' : 'Deposit proof queued for admin approval.', taxAmount, totalToPay, netAmount, status: deposit.status });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
@@ -532,6 +542,18 @@ app.post('/api/bonus/claim', verifyToken, (req, res) => {
 app.get('/api/admin/metrics', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Restricted administrative zone!' });
   return res.status(200).json({ totalUsers: users.length, systemFunds: wallets.reduce((s, w) => s + w.balance, 0), activeContracts: transactions.length });
+});
+
+app.get('/api/admin/deposit-settings', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  return res.status(200).json({ autoApproveDeposits: Boolean(depositSettings[0]?.autoApproveDeposits), manualApproval: !depositSettings[0]?.autoApproveDeposits });
+});
+
+app.put('/api/admin/deposit-settings', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  const autoApproveDeposits = Boolean(req.body.autoApproveDeposits);
+  depositSettings.splice(0, 1, { autoApproveDeposits });
+  return res.status(200).json({ success: true, message: autoApproveDeposits ? 'Auto approval enabled for new deposits.' : 'Manual approval enabled for new deposits.', autoApproveDeposits, manualApproval: !autoApproveDeposits });
 });
 
 app.get('/api/public/stats', (req, res) => {
