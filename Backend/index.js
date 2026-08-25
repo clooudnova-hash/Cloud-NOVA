@@ -44,6 +44,10 @@ if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
 const SIGNING_SECRET = JWT_SECRET || 'CloudNova-development-only';
 const isGmailAddress = email => /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@gmail\.com$/i.test(String(email || '').trim());
 const isValidEmail = email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+const parsePakistanDateTime = value => {
+  const text = String(value || '').trim();
+  return new Date(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(text) ? `${text}:00+05:00` : text);
+};
 
 
 const users = [];
@@ -799,12 +803,12 @@ app.post('/api/admin/bonus/add', verifyToken, (req, res) => {
   try {
     const { code, bonus, startsAt, expiresAt, maxUsers, allowedUserIds } = req.body;
     const reward = parseFloat(bonus);
-    const startDate = new Date(startsAt);
-    const expiryDate = new Date(expiresAt);
+    const startDate = parsePakistanDateTime(startsAt);
+    const expiryDate = parsePakistanDateTime(expiresAt);
     const userLimit = parseInt(maxUsers, 10);
     const restrictedUsers = Array.isArray(allowedUserIds) ? [...new Set(allowedUserIds.map(id => String(id).trim()).filter(Boolean))] : [];
     const exactCode = String(code || '').trim();
-    if (!exactCode || !Number.isFinite(reward) || reward <= 0 || !Number.isFinite(startDate.getTime()) || !Number.isFinite(expiryDate.getTime()) || expiryDate <= startDate || !Number.isInteger(userLimit) || userLimit < 1) return res.status(400).json({ message: 'Enter a valid code, reward, time window, and user limit.' });
+    if (!exactCode || !Number.isFinite(reward) || reward <= 0 || !Number.isFinite(startDate.getTime()) || !Number.isFinite(expiryDate.getTime()) || startDate <= new Date() || expiryDate <= startDate || !Number.isInteger(userLimit) || userLimit < 1) return res.status(400).json({ message: 'Enter a valid future Pakistan-time window, reward, and user limit.' });
     if (couponVouchers.find(c => c.code === exactCode)) return res.status(400).json({ message: 'Code already exists' });
     couponVouchers.push({ code: exactCode, bonus: reward, startsAt: startDate.toISOString(), expiresAt: expiryDate.toISOString(), maxUsers: userLimit, allowedUserIds: restrictedUsers, active: true });
     return res.status(201).json({ success: true, message: 'Bonus code added!' });
