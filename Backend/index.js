@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const http = require('http');
+const net = require('net');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
@@ -53,8 +54,9 @@ const couponVouchers = [];
 const bonusClaims = [];
 const emailOtpCache = [];
 const taskClaims = [];
+const weeklyWinnerSettings = [];
 const stateFile = process.env.CLOUDNOVA_DATA_FILE || path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data'), 'cloudnova-state.json');
-const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims };
+const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims, weeklyWinnerSettings };
 const database = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 const restoreState = () => {
@@ -147,6 +149,10 @@ const mockPasswordHash = bcrypt.hashSync('Admin@123', 10);
 const initializeState = async () => {
   restoredState = database ? await restoreDatabaseState() : restoreState();
   if (database && !restoredState) restoredState = restoreState();
+  if (!weeklyWinnerSettings.length) weeklyWinnerSettings.push({
+    name: 'Hamza Khan', amount: 250, expiresAt: '2000-01-01T00:00:00.000Z',
+    winners: [{ rank: 1, name: 'Hamza Khan', amount: 250 }, { rank: 2, name: 'Ali Raza', amount: 180 }, { rank: 3, name: 'Usman Ahmed', amount: 120 }]
+  });
   if (!restoredState && !users.some(user => user.email === 'noor@cloudnova.com')) {
     users.push({ id: 'usr_mock1', username: 'noor', fullName: 'Noor Zaman', email: 'noor@cloudnova.com', password: mockPasswordHash, role: 'admin', myReferralCode: 'NOOR99', referredBy: '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
     wallets.push({ userId: 'usr_mock1', balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
@@ -555,6 +561,12 @@ app.get('/api/public/stats', (req, res) => {
   });
 });
 
+app.get('/api/public/weekly-winner', (req, res) => {
+  const winner = weeklyWinnerSettings[0];
+  if (!winner || new Date(winner.expiresAt) <= new Date()) return res.status(200).json({ active: false });
+  return res.status(200).json({ active: true, ...winner });
+});
+
 app.get('/api/admin/transactions', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   return res.status(200).json(transactions);
@@ -742,6 +754,23 @@ app.get('/api/admin/bonus', verifyToken, (req, res) => {
   })));
 });
 
+app.get('/api/admin/weekly-winner', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  return res.status(200).json(weeklyWinnerSettings[0] || { name: '', amount: 0, expiresAt: '', winners: [] });
+});
+
+app.put('/api/admin/weekly-winner', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  const name = String(req.body.name || '').trim();
+  const amount = Number(req.body.amount);
+  const expiresAt = new Date(req.body.expiresAt);
+  const winners = Array.isArray(req.body.winners) ? req.body.winners.map((winner, index) => ({ rank: index + 1, name: String(winner.name || '').trim(), amount: Number(winner.amount) })).filter(winner => winner.name && Number.isFinite(winner.amount) && winner.amount >= 0).slice(0, 10) : [];
+  if (!name || !Number.isFinite(amount) || amount < 0 || !Number.isFinite(expiresAt.getTime()) || expiresAt <= new Date() || !winners.length) return res.status(400).json({ message: 'Winner name, amount, future expiry, and at least one ranking are required.' });
+  const settings = { name, amount, expiresAt: expiresAt.toISOString(), winners };
+  weeklyWinnerSettings.splice(0, 1, settings);
+  return res.status(200).json({ success: true, message: 'Weekly winner updated successfully.', ...settings });
+});
+
 // Admin: add bonus code
 app.post('/api/admin/bonus/add', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
@@ -885,10 +914,37 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(FRONTEND_BUILD, 'index.html'));
 });
 
+const getAvailablePort = port => new Promise((resolve, reject) => {
+  const tester = net.createServer();
+
+  tester.once('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      resolve(getAvailablePort(port + 1));
+      return;
+    }
+    reject(error);
+  });
+
+  tester.once('listening', () => {
+    const address = tester.address();
+    tester.close(() => resolve(address.port));
+  });
+
+  tester.listen(port, '0.0.0.0');
+});
+
 initializeState()
-  .then(() => server.listen(PORT, '0.0.0.0', () => {
-    console.log(`=========================================\n🚀 CLOUDNOVA SERVER LIVE ON PORT: ${PORT}\n=========================================`);
-  }))
+  .then(async () => {
+    const preferredPort = Number(PORT) || 5000;
+    const portToUse = await getAvailablePort(preferredPort);
+    if (portToUse !== preferredPort) {
+      console.warn(`Port ${preferredPort} is busy; falling back to ${portToUse}.`);
+    }
+
+    server.listen(portToUse, '0.0.0.0', () => {
+      console.log(`=========================================\n🚀 CLOUDNOVA SERVER LIVE ON PORT: ${portToUse}\n=========================================`);
+    });
+  })
   .catch(error => {
     console.error('CloudNova could not initialize persistent storage:', error.message);
     process.exitCode = 1;

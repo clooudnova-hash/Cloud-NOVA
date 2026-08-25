@@ -7,8 +7,8 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "node Backend/index.js",
-    "dev": "node Backend/index.js",
+    "start": "node scripts/ensure-build.js && node Backend/index.js",
+    "dev": "node scripts/ensure-build.js && node Backend/index.js",
     "build": "npm install --prefix Backend && npm install --prefix FrontEnd && cd FrontEnd && npm run build",
     "android:debug": "npm --prefix FrontEnd run android:debug"
   },

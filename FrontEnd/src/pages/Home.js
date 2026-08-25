@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Trophy, X, ChevronRight } from 'lucide-react';
 
 export default function Home() {
   const [btcPrice, setBtcPrice] = useState(89878.44);
@@ -7,6 +7,8 @@ export default function Home() {
   const [collectToast, setCollectToast] = useState('');
   const [collecting, setCollecting] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [showWinners, setShowWinners] = useState(false);
+  const [weeklyWinner, setWeeklyWinner] = useState(null);
 
   const formatDuration = milliseconds => {
     const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
@@ -19,6 +21,10 @@ export default function Home() {
   };
 
   // Refresh the displayed BTC price from a live market source.
+  useEffect(() => {
+    fetch('/api/public/weekly-winner').then(response => response.ok ? response.json() : null).then(data => { if (data?.active) setWeeklyWinner(data); }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const loadBtcPrice = async () => {
       try {
@@ -75,6 +81,11 @@ export default function Home() {
   const vipLevel = dashboard?.vipLevel || 'Bronze';
   const activeContracts = (dashboard?.miningContracts || []).filter(contract => contract.status === 'active');
   const incomeNodes = activeContracts.length ? activeContracts : [{ id: 'preview-node', lastCollectedAt: new Date().toISOString(), preview: true }];
+  const winnerTimeLeft = weeklyWinner ? Math.max(0, new Date(weeklyWinner.expiresAt).getTime() - currentTime) : 0;
+  const winnerHours = Math.floor(winnerTimeLeft / 3600000);
+  const winnerMinutes = Math.floor((winnerTimeLeft % 3600000) / 60000);
+  const winnerSeconds = Math.floor((winnerTimeLeft % 60000) / 1000);
+  const winnerIsActive = Boolean(weeklyWinner && winnerTimeLeft > 0);
 
   const miningPools = activeContracts.map((contract, index) => ({
     id: contract.id,
@@ -164,6 +175,29 @@ export default function Home() {
         </div>
       </div>
 
+      {winnerIsActive && (
+        <button type="button" onClick={() => setShowWinners(true)} aria-label="Open weekly winners" className="weekly-winner-line">
+          <span className="weekly-winner-icon"><Trophy size={17} strokeWidth={2.4} /></span>
+          <span className="weekly-winner-copy"><strong>This Week's Biggest Winner</strong><span>{weeklyWinner.name} won ${Number(weeklyWinner.amount).toFixed(2)}</span></span>
+          <span className="weekly-winner-countdown">{String(winnerHours).padStart(2, '0')}:{String(winnerMinutes).padStart(2, '0')}:{String(winnerSeconds).padStart(2, '0')}</span>
+          <ChevronRight className="weekly-winner-arrow" size={19} strokeWidth={2.5} />
+        </button>
+      )}
+
+      {showWinners && (
+        <div className="weekly-winner-overlay" role="dialog" aria-modal="true" aria-labelledby="weekly-winner-title" onClick={() => setShowWinners(false)}>
+          <div className="weekly-winner-panel" onClick={event => event.stopPropagation()}>
+            <button type="button" className="weekly-winner-close" aria-label="Close weekly winners" onClick={() => setShowWinners(false)}><X size={19} /></button>
+            <div className="weekly-winner-heading"><span><Trophy size={22} /></span><div><p>CloudNova Rewards</p><h2 id="weekly-winner-title">Weekly Winners</h2></div></div>
+            <p className="weekly-winner-subtitle">Celebrating the strongest performers this week.</p>
+            <div className="weekly-winner-list">
+              {(weeklyWinner?.winners || []).map(winner => <div className={`weekly-winner-row winner-rank-${winner.rank}`} key={winner.rank}><span className="winner-rank">{winner.rank === 1 ? '1st' : winner.rank === 2 ? '2nd' : winner.rank === 3 ? '3rd' : `${winner.rank}th`}</span><span className="winner-name">{winner.name}</span><strong>${Number(winner.amount).toFixed(2)}</strong></div>)}
+            </div>
+            <p className="weekly-winner-expiry">Next update in {String(winnerHours).padStart(2, '0')}:{String(winnerMinutes).padStart(2, '0')}:{String(winnerSeconds).padStart(2, '0')}</p>
+          </div>
+        </div>
+      )}
+
       {/* CLOUD VIDEO */}
       <section style={{ padding: '20px 40px 0', backgroundColor: '#f8fafc' }}>
         <div className="cloudnova-video-card" style={{ backgroundColor: '#0f172a', borderRadius: '16px', overflow: 'hidden', border: '1px solid #1e3a8a', boxShadow: '0 8px 24px rgba(15,23,42,0.16)' }}>
@@ -239,6 +273,31 @@ export default function Home() {
         @keyframes incomeCoinFloat { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-9px) rotate(8deg); } }
         @keyframes cloudnovaCoreCoin { 0%, 100% { transform: translate(-50%, -50%) rotateY(0deg) scale(1); } 50% { transform: translate(-50%, -50%) rotateY(180deg) scale(1.08); } }
         @keyframes fluidGraphPulse { 0% { transform: scaleY(0.9) translateY(4px); opacity: 0.85; } 100% { transform: scaleY(1.05) translateY(-2px); opacity: 1; } }
+        .weekly-winner-line { width: 100%; display: flex; align-items: center; gap: 11px; padding: 12px 40px; border: 0; border-bottom: 1px solid rgba(37,99,235,0.16); background: linear-gradient(90deg, #ffffff 0%, #eff6ff 48%, #ffffff 100%); color: #0f172a; text-align: left; cursor: pointer; animation: weeklyWinnerReveal 500ms ease-out both; }
+        .weekly-winner-icon { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; border-radius: 10px; color: #b45309; background: linear-gradient(135deg, #fef3c7, #fbbf24); box-shadow: 0 5px 14px rgba(245,158,11,0.24); }
+        .weekly-winner-copy { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 9px; overflow: hidden; }
+        .weekly-winner-copy strong { color: #1e3a8a; font-size: 12px; white-space: nowrap; }
+        .weekly-winner-copy span { color: #64748b; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .weekly-winner-countdown { color: #2563eb; font-size: 11px; font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .weekly-winner-arrow { flex: 0 0 auto; color: #2563eb; }
+        .weekly-winner-overlay { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 20px; background: rgba(2,6,23,0.68); backdrop-filter: blur(7px); animation: weeklyWinnerFade 180ms ease-out both; }
+        .weekly-winner-panel { width: min(100%, 390px); padding: 24px; position: relative; border: 1px solid rgba(96,165,250,0.35); border-radius: 20px; color: #fff; background: linear-gradient(155deg, #0b1a50, #102b75 62%, #07112f); box-shadow: 0 25px 70px rgba(0,0,0,0.45); animation: weeklyWinnerPanelIn 260ms cubic-bezier(.2,.8,.2,1) both; }
+        .weekly-winner-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,0.16); border-radius: 50%; background: rgba(255,255,255,0.08); color: #fff; cursor: pointer; }
+        .weekly-winner-heading { display: flex; align-items: center; gap: 12px; }
+        .weekly-winner-heading > span { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 13px; color: #fbbf24; background: rgba(251,191,36,0.16); }
+        .weekly-winner-heading p { margin: 0 0 3px; color: #67e8f9; font-size: 10px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; }
+        .weekly-winner-heading h2 { margin: 0; font-size: 22px; }
+        .weekly-winner-subtitle { margin: 18px 0; color: #bfdbfe; font-size: 12px; }
+        .weekly-winner-list { display: grid; gap: 9px; }
+        .weekly-winner-row { display: flex; align-items: center; gap: 10px; padding: 13px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: rgba(255,255,255,0.07); animation: weeklyWinnerRowIn 350ms ease-out both; }
+        .weekly-winner-row:nth-child(2) { animation-delay: 70ms; }.weekly-winner-row:nth-child(3) { animation-delay: 140ms; }
+        .winner-rank { width: 34px; color: #fbbf24; font-size: 11px; font-weight: 900; }.winner-name { flex: 1; font-size: 13px; font-weight: 700; }.weekly-winner-row strong { color: #86efac; font-size: 14px; }
+        .weekly-winner-expiry { margin: 18px 0 0; color: #93c5fd; font-size: 11px; text-align: center; }
+        @keyframes weeklyWinnerReveal { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes weeklyWinnerFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes weeklyWinnerPanelIn { from { opacity: 0; transform: translateY(15px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes weeklyWinnerRowIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        @media (max-width: 560px) { .weekly-winner-line { padding-left: 16px; padding-right: 16px; gap: 8px; }.weekly-winner-copy { display: block; }.weekly-winner-copy span { display: block; margin-top: 2px; }.weekly-winner-countdown { font-size: 10px; } }
       `}</style>
     </div>
   );

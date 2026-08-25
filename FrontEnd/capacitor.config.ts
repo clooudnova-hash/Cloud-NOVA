@@ -4,10 +4,12 @@ const config: CapacitorConfig = {
   appId: 'com.cloudnova.app',
   appName: 'Cloud Nova',
   webDir: 'build',
-  server: {
-    url: process.env.REACT_APP_API_URL || 'https://clooudnova.up.railway.app',
-    cleartext: false,
-    androidScheme: 'https'
+  plugins: {
+    SplashScreen: {
+      launchAutoHide: true,
+      launchShowDuration: 250,
+      backgroundColor: '#0b0c0f'
+    }
   },
   android: {
     allowMixedContent: false,
