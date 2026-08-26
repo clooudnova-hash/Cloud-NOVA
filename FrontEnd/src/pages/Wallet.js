@@ -28,7 +28,7 @@ const Wallet = () => {
   const depositTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.08).toFixed(4)) : 0;
   const totalToPay = Number.isFinite(parsedAmount) ? Number((parsedAmount + depositTax).toFixed(4)) : 0;
   const netReceived = Number.isFinite(parsedAmount) ? Number(parsedAmount.toFixed(4)) : 0;
-  const withdrawalTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.08).toFixed(4)) : 0;
+  const withdrawalTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.15).toFixed(4)) : 0;
   const withdrawalReceived = Number.isFinite(parsedAmount) ? Number((parsedAmount - withdrawalTax).toFixed(4)) : 0;
 
   const token = localStorage.getItem('token');
@@ -209,7 +209,7 @@ const Wallet = () => {
               <input type="number" min="10" step="0.01" placeholder="Minimum $10.00" value={amount} onChange={e => setAmount(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500 transition" />
               <div className="mt-2 flex items-center justify-between text-[10px] font-bold rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-amber-700">
-                <span>8% tax</span>
+                <span>15% tax</span>
                 <span>-${depositTax.toFixed(2)}</span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[10px] font-bold rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1.5 text-sky-700">

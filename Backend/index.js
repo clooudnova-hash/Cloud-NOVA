@@ -134,7 +134,7 @@ const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
 const MIN_DEPOSIT_AMOUNT = 10;
 const MIN_WITHDRAWAL_AMOUNT = 3;
 const DEPOSIT_TAX_RATE = 0.08;
-const WITHDRAWAL_TAX_RATE = 0.08;
+const WITHDRAWAL_TAX_RATE = 0.15;
 const getPakistanBusinessTime = () => {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Karachi', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(new Date());
   return { weekday: parts.find(part => part.type === 'weekday')?.value, hour: Number(parts.find(part => part.type === 'hour')?.value) };
