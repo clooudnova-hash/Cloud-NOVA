@@ -46,7 +46,7 @@ export default function Admin() {
   const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '', referralCode: '' });
   const [resetPassword, setResetPassword] = useState({});
   const [vipSelection, setVipSelection] = useState({});
-  const [weeklyWinner, setWeeklyWinner] = useState({ name: '', amount: '', expiresAt: '', winners: [{ name: '', amount: '' }, { name: '', amount: '' }, { name: '', amount: '' }] });
+  const [weeklyWinner, setWeeklyWinner] = useState({ active: false, depositorName: '', depositorAmount: '', withdrawalName: '', withdrawalAmount: '', expiresAt: '' });
   const [depositSettings, setDepositSettings] = useState({ autoApproveDeposits: true, manualApproval: false });
   const [timeAccess, setTimeAccess] = useState({});
 
@@ -72,7 +72,7 @@ export default function Admin() {
     setUsers(Array.isArray(u) ? u : []);
     setBonusCodes(Array.isArray(b) ? b : []);
     setTaskClaims(Array.isArray(tc) ? tc : []);
-    if (winner?.name) setWeeklyWinner(winner);
+    if (winner) setWeeklyWinner(winner);
     if (deposits && typeof deposits.autoApproveDeposits === 'boolean') setDepositSettings(deposits);
   }, []);
 
@@ -222,11 +222,21 @@ export default function Admin() {
 
   const updateWeeklyWinner = async () => {
     setLoading(true);
-    const res = await api('/api/admin/weekly-winner', { method: 'PUT', body: { ...weeklyWinner, amount: Number(weeklyWinner.amount), winners: weeklyWinner.winners.map(winner => ({ ...winner, amount: Number(winner.amount) })) } });
+    const res = await api('/api/admin/weekly-winner', { method: 'PUT', body: { ...weeklyWinner, depositorAmount: Number(weeklyWinner.depositorAmount), withdrawalAmount: Number(weeklyWinner.withdrawalAmount) } });
     setMsg(res.message || res.error);
     if (res.success) setWeeklyWinner(res);
     setLoading(false);
     setTimeout(() => setMsg(''), 4000);
+  };
+
+  const removeWeeklyWinner = async () => {
+    if (!window.confirm('Remove Weekly Highlights from Home?')) return;
+    setLoading(true);
+    const res = await api('/api/admin/weekly-winner', { method: 'DELETE' });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setLoading(false);
+    setTimeout(() => setMsg(''), 3000);
   };
 
   const updateDepositSettings = async autoApproveDeposits => {
@@ -248,7 +258,7 @@ export default function Admin() {
     setTimeout(() => setMsg(''), 3000);
   };
 
-  const tabs = ['dashboard', 'transactions', 'users', 'teams', 'bonus', 'winner', 'tasks'];
+  const tabs = ['dashboard', 'transactions', 'users', 'teams', 'bonus', 'winner'];
 
   return (
     <div className="premium-page" style={{ minHeight: '100vh', background: '#080c1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', padding: '0 0 40px' }}>
@@ -286,7 +296,7 @@ export default function Admin() {
             borderRadius: '8px 8px 0 0', padding: '10px 20px', color: tab === t ? '#7dd3fc' : 'rgba(255,255,255,0.4)',
             fontSize: '13px', fontWeight: tab === t ? '700' : '500', cursor: 'pointer',
             textTransform: 'capitalize',
-          }}>{t === 'dashboard' ? '📊 Dashboard' : t === 'transactions' ? '💸 Transactions' : t === 'users' ? '👥 Users' : t === 'teams' ? '👥 Referral Teams' : t === 'bonus' ? '🎫 Bonus Codes' : t === 'winner' ? '🏆 Weekly Winner' : '✅ Task Claims'}</button>
+          }}>{t === 'dashboard' ? '📊 Dashboard' : t === 'transactions' ? '💸 Transactions' : t === 'users' ? '👥 Users' : t === 'teams' ? '👥 Referral Teams' : t === 'bonus' ? '🎫 Bonus Codes' : t === 'winner' ? '🏆 Weekly Highlights' : '✅ Task Claims'}</button>
         ))}
       </div>
 
@@ -295,18 +305,20 @@ export default function Admin() {
         {tab === 'winner' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={card}>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>🏆 Weekly Winner Settings</div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>🏆 Weekly Highlights</div>
               <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px', marginBottom: '20px' }}>Ye details Home screen par clickable winner line mein show hongi.</div>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ flex: '1 1 220px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>BIGGEST WINNER NAME</label><input value={weeklyWinner.name} onChange={e => setWeeklyWinner(prev => ({ ...prev, name: e.target.value }))} placeholder="Winner name" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
-                <div style={{ flex: '0 1 150px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>AMOUNT ($)</label><input type="number" min="0" value={weeklyWinner.amount} onChange={e => setWeeklyWinner(prev => ({ ...prev, amount: e.target.value }))} placeholder="250" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
-                <div style={{ flex: '1 1 220px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>EXPIRES AT</label><input type="datetime-local" value={weeklyWinner.expiresAt ? weeklyWinner.expiresAt.slice(0, 16) : ''} onChange={e => setWeeklyWinner(prev => ({ ...prev, expiresAt: e.target.value }))} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
+                <div style={{ flex: '1 1 220px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>BEST DEPOSITOR</label><input value={weeklyWinner.depositorName} onChange={e => setWeeklyWinner(prev => ({ ...prev, depositorName: e.target.value }))} placeholder="Name" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
+                <div style={{ flex: '0 1 150px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>DEPOSITED ($)</label><input type="number" min="0" value={weeklyWinner.depositorAmount} onChange={e => setWeeklyWinner(prev => ({ ...prev, depositorAmount: e.target.value }))} placeholder="500" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
+                <div style={{ flex: '1 1 220px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>BEST WITHDRAWAL</label><input value={weeklyWinner.withdrawalName} onChange={e => setWeeklyWinner(prev => ({ ...prev, withdrawalName: e.target.value }))} placeholder="Name" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
+                <div style={{ flex: '0 1 150px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>WITHDRAWN ($)</label><input type="number" min="0" value={weeklyWinner.withdrawalAmount} onChange={e => setWeeklyWinner(prev => ({ ...prev, withdrawalAmount: e.target.value }))} placeholder="320" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
+                <div style={{ flex: '1 1 220px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>EXPIRES AT (PAKISTAN TIME)</label><input type="datetime-local" value={weeklyWinner.expiresAt ? weeklyWinner.expiresAt.slice(0, 16) : ''} onChange={e => setWeeklyWinner(prev => ({ ...prev, expiresAt: e.target.value }))} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
               </div>
             </div>
             <div style={card}>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '14px' }}>Winner Rankings</div>
-              <div style={{ display: 'grid', gap: '10px' }}>{weeklyWinner.winners.map((winner, index) => <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{ width: '34px', color: '#fbbf24', fontWeight: '800' }}>{index + 1}.</span><input value={winner.name} onChange={e => setWeeklyWinner(prev => ({ ...prev, winners: prev.winners.map((item, itemIndex) => itemIndex === index ? { ...item, name: e.target.value } : item) }))} placeholder={`Winner ${index + 1}`} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /><input type="number" min="0" value={winner.amount} onChange={e => setWeeklyWinner(prev => ({ ...prev, winners: prev.winners.map((item, itemIndex) => itemIndex === index ? { ...item, amount: e.target.value } : item) }))} placeholder="Amount" style={{ width: '120px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>)}</div>
-              <button type="button" onClick={updateWeeklyWinner} disabled={loading} style={{ ...btn('linear-gradient(135deg, #00b4ff, #7c3aed)'), marginTop: '18px', padding: '11px 22px' }}>Save Weekly Winner</button>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '14px' }}>Publish or remove from Home</div>
+              <button type="button" onClick={updateWeeklyWinner} disabled={loading} style={{ ...btn('linear-gradient(135deg, #00b4ff, #7c3aed)'), marginRight: '8px', padding: '11px 22px' }}>Publish Highlights</button>
+              <button type="button" onClick={removeWeeklyWinner} disabled={loading} style={{ ...btn('#ef4444'), marginTop: '18px', padding: '11px 22px' }}>Remove from Home</button>
             </div>
           </div>
         )}

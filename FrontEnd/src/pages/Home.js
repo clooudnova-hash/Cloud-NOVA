@@ -85,7 +85,7 @@ export default function Home() {
   const winnerHours = Math.floor(winnerTimeLeft / 3600000);
   const winnerMinutes = Math.floor((winnerTimeLeft % 3600000) / 60000);
   const winnerSeconds = Math.floor((winnerTimeLeft % 60000) / 1000);
-  const winnerIsActive = Boolean(weeklyWinner && winnerTimeLeft > 0);
+  const winnerIsActive = Boolean(weeklyWinner?.active && winnerTimeLeft > 0);
 
   const miningPools = activeContracts.map((contract, index) => ({
     id: contract.id,
@@ -178,7 +178,7 @@ export default function Home() {
       {winnerIsActive && (
         <button type="button" onClick={() => setShowWinners(true)} aria-label="Open weekly winners" className="weekly-winner-line">
           <span className="weekly-winner-icon"><Trophy size={17} strokeWidth={2.4} /></span>
-          <span className="weekly-winner-copy"><strong>This Week's Biggest Winner</strong><span>{weeklyWinner.name} won ${Number(weeklyWinner.amount).toFixed(2)}</span></span>
+          <span className="weekly-winner-copy"><strong>Weekly Highlights</strong><span>Best Depositor: {weeklyWinner.depositorName} · Best Withdrawal: {weeklyWinner.withdrawalName}</span></span>
           <span className="weekly-winner-countdown">{String(winnerHours).padStart(2, '0')}:{String(winnerMinutes).padStart(2, '0')}:{String(winnerSeconds).padStart(2, '0')}</span>
           <ChevronRight className="weekly-winner-arrow" size={19} strokeWidth={2.5} />
         </button>
@@ -189,9 +189,10 @@ export default function Home() {
           <div className="weekly-winner-panel" onClick={event => event.stopPropagation()}>
             <button type="button" className="weekly-winner-close" aria-label="Close weekly winners" onClick={() => setShowWinners(false)}><X size={19} /></button>
             <div className="weekly-winner-heading"><span><Trophy size={22} /></span><div><p>CloudNova Rewards</p><h2 id="weekly-winner-title">Weekly Winners</h2></div></div>
-            <p className="weekly-winner-subtitle">Celebrating the strongest performers this week.</p>
+            <p className="weekly-winner-subtitle">Celebrating this week's top platform performers.</p>
             <div className="weekly-winner-list">
-              {(weeklyWinner?.winners || []).map(winner => <div className={`weekly-winner-row winner-rank-${winner.rank}`} key={winner.rank}><span className="winner-rank">{winner.rank === 1 ? '1st' : winner.rank === 2 ? '2nd' : winner.rank === 3 ? '3rd' : `${winner.rank}th`}</span><span className="winner-name">{winner.name}</span><strong>${Number(winner.amount).toFixed(2)}</strong></div>)}
+              <div className="weekly-winner-row winner-rank-1"><span className="winner-rank">🏆</span><span className="winner-name">Best Depositor · {weeklyWinner.depositorName}</span><strong>${Number(weeklyWinner.depositorAmount).toFixed(2)}</strong></div>
+              <div className="weekly-winner-row winner-rank-2"><span className="winner-rank">💸</span><span className="winner-name">Best Withdrawal · {weeklyWinner.withdrawalName}</span><strong>${Number(weeklyWinner.withdrawalAmount).toFixed(2)}</strong></div>
             </div>
             <p className="weekly-winner-expiry">Next update in {String(winnerHours).padStart(2, '0')}:{String(winnerMinutes).padStart(2, '0')}:{String(winnerSeconds).padStart(2, '0')}</p>
           </div>

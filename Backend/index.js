@@ -585,7 +585,7 @@ app.get('/api/public/stats', (req, res) => {
 
 app.get('/api/public/weekly-winner', (req, res) => {
   const winner = weeklyWinnerSettings[0];
-  if (!winner || new Date(winner.expiresAt) <= new Date()) return res.status(200).json({ active: false });
+  if (!winner || winner.active === false || new Date(winner.expiresAt) <= new Date()) return res.status(200).json({ active: false });
   return res.status(200).json({ active: true, ...winner });
 });
 
@@ -796,19 +796,28 @@ app.get('/api/admin/bonus', verifyToken, (req, res) => {
 
 app.get('/api/admin/weekly-winner', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
-  return res.status(200).json(weeklyWinnerSettings[0] || { name: '', amount: 0, expiresAt: '', winners: [] });
+  const winner = weeklyWinnerSettings[0] || {};
+  return res.status(200).json({ active: Boolean(winner.active), depositorName: winner.depositorName || '', depositorAmount: winner.depositorAmount ?? 0, withdrawalName: winner.withdrawalName || '', withdrawalAmount: winner.withdrawalAmount ?? 0, expiresAt: winner.expiresAt || '' });
 });
 
 app.put('/api/admin/weekly-winner', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
-  const name = String(req.body.name || '').trim();
-  const amount = Number(req.body.amount);
-  const expiresAt = new Date(req.body.expiresAt);
-  const winners = Array.isArray(req.body.winners) ? req.body.winners.map((winner, index) => ({ rank: index + 1, name: String(winner.name || '').trim(), amount: Number(winner.amount) })).filter(winner => winner.name && Number.isFinite(winner.amount) && winner.amount >= 0).slice(0, 10) : [];
-  if (!name || !Number.isFinite(amount) || amount < 0 || !Number.isFinite(expiresAt.getTime()) || expiresAt <= new Date() || !winners.length) return res.status(400).json({ message: 'Winner name, amount, future expiry, and at least one ranking are required.' });
-  const settings = { name, amount, expiresAt: expiresAt.toISOString(), winners };
+  const depositorName = String(req.body.depositorName || '').trim();
+  const depositorAmount = Number(req.body.depositorAmount);
+  const withdrawalName = String(req.body.withdrawalName || '').trim();
+  const withdrawalAmount = Number(req.body.withdrawalAmount);
+  const rawExpiry = String(req.body.expiresAt || '').trim();
+  const expiresAt = new Date(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(rawExpiry) ? `${rawExpiry}:00+05:00` : rawExpiry);
+  if (!depositorName || !withdrawalName || !Number.isFinite(depositorAmount) || depositorAmount < 0 || !Number.isFinite(withdrawalAmount) || withdrawalAmount < 0 || !Number.isFinite(expiresAt.getTime()) || expiresAt <= new Date()) return res.status(400).json({ message: 'Both names, amounts, and a future Pakistan-time expiry are required.' });
+  const settings = { active: true, depositorName, depositorAmount, withdrawalName, withdrawalAmount, expiresAt: expiresAt.toISOString() };
   weeklyWinnerSettings.splice(0, 1, settings);
-  return res.status(200).json({ success: true, message: 'Weekly winner updated successfully.', ...settings });
+  return res.status(200).json({ success: true, message: 'Weekly highlights published successfully.', ...settings });
+});
+
+app.delete('/api/admin/weekly-winner', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  weeklyWinnerSettings.splice(0, 1, { ...(weeklyWinnerSettings[0] || {}), active: false });
+  return res.status(200).json({ success: true, message: 'Weekly highlights removed from Home.' });
 });
 
 // Admin: add bonus code
