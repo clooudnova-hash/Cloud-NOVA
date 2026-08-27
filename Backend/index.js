@@ -179,18 +179,35 @@ const getTeamTree = (userId) => {
   for (let level = 0; level < 3; level += 1) {
     const members = users.filter(user => parentIds.includes(user.referredBy));
     levels[level] = members.map(user => {
-      const deposits = transactions.filter(tx => tx.userId === user.id && tx.type === 'deposit');
+      const wallet = wallets.find(item => item.userId === user.id) || {};
+      const userTransactions = transactions.filter(tx => tx.userId === user.id);
+      const deposits = userTransactions.filter(tx => tx.type === 'deposit');
+      const withdrawals = userTransactions.filter(tx => tx.type === 'withdrawal');
+      const machines = getMiningSummary(user.id);
       const latestDeposit = deposits.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
       return {
-        id: user.id, username: user.username, fullName: user.fullName, referredBy: user.referredBy,
+        id: user.id, username: user.username, fullName: user.fullName, email: user.email, myReferralCode: user.myReferralCode, referredBy: user.referredBy,
         depositStatus: latestDeposit ? latestDeposit.status : 'no_deposit',
-        depositedAmount: deposits.filter(tx => tx.status === 'completed').reduce((sum, tx) => sum + tx.amount, 0)
+        depositedAmount: deposits.filter(tx => tx.status === 'completed').reduce((sum, tx) => sum + Number(tx.amount || 0), 0),
+        withdrawalAmount: withdrawals.filter(tx => tx.status === 'completed').reduce((sum, tx) => sum + Number(tx.amount || 0), 0),
+        withdrawalCount: withdrawals.length,
+        balance: Number(wallet.balance || 0),
+        minersCount: Number(wallet.minersCount || machines.length || 0),
+        machineCount: machines.length,
+        machines: machines.map(machine => ({ id: machine.id, tier: machine.tier, cost: machine.cost, status: machine.status, endDate: machine.endDate }))
       };
     });
     parentIds = members.map(user => user.id);
   }
   return levels;
 };
+
+const getTeamSummary = team => team.map((members, index) => ({
+  level: index + 1,
+  members: members.length,
+  depositedAmount: Number(members.reduce((sum, member) => sum + Number(member.depositedAmount || 0), 0).toFixed(2)),
+  withdrawalAmount: Number(members.reduce((sum, member) => sum + Number(member.withdrawalAmount || 0), 0).toFixed(2))
+}));
 
 const MINING_PLANS = {
   Starter: { cost: 10, dailyIncome: 0.53, durationDays: 38, hashrate: 5, limit: 1 },
@@ -642,7 +659,8 @@ app.get('/api/admin/users', verifyToken, (req, res) => {
     const vip = syncVipLevel(u);
     const w = wallets.find(wl => wl.userId === u.id) || {};
     const upline = users.find(user => user.id === u.referredBy);
-    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0, allowDepositOutsideHours: Boolean(u.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(u.allowWithdrawalOutsideHours), miningContracts: getMiningSummary(u.id), team: getTeamTree(u.id) };
+    const team = getTeamTree(u.id);
+    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0, allowDepositOutsideHours: Boolean(u.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(u.allowWithdrawalOutsideHours), miningContracts: getMiningSummary(u.id), team, teamSummary: getTeamSummary(team) };
   });
   return res.status(200).json(result);
 });

@@ -24,6 +24,29 @@ const btn = (color = '#00b4ff') => ({
 
 const statusColor = { pending: '#f59e0b', completed: '#10b981', rejected: '#ef4444' };
 
+const getTeamSummary = (user, teamMembers) => user.teamSummary || [0, 1, 2].map(levelIndex => {
+  const members = teamMembers.filter(member => member.level === levelIndex + 1);
+  return {
+    level: levelIndex + 1,
+    members: members.length,
+    depositedAmount: members.reduce((sum, member) => sum + Number(member.depositedAmount || 0), 0),
+    withdrawalAmount: members.reduce((sum, member) => sum + Number(member.withdrawalAmount || 0), 0)
+  };
+});
+
+const getPreviewTeamUsers = users => {
+  if (new URLSearchParams(window.location.search).get('preview') !== 'team' || !users.length) return users;
+  const previewMembers = [
+    { id: 'preview_l1_1', username: 'ali786', fullName: 'Ali Raza', email: 'ali.preview@cloudnova.test', myReferralCode: 'ALI786', depositStatus: 'completed', depositedAmount: 500, withdrawalAmount: 120, withdrawalCount: 2, balance: 380, machineCount: 2, machines: [{ tier: 'Premium', status: 'active' }, { tier: 'Pro', status: 'active' }] },
+    { id: 'preview_l1_2', username: 'sara01', fullName: 'Sara Khan', email: 'sara.preview@cloudnova.test', myReferralCode: 'SARA01', depositStatus: 'completed', depositedAmount: 250, withdrawalAmount: 40, withdrawalCount: 1, balance: 210, machineCount: 1, machines: [{ tier: 'Standard', status: 'active' }] },
+    { id: 'preview_l1_3', username: 'hamza_pro', fullName: 'Hamza Ahmed', email: 'hamza.preview@cloudnova.test', myReferralCode: 'HAMZA88', depositStatus: 'completed', depositedAmount: 100, withdrawalAmount: 0, withdrawalCount: 0, balance: 100, machineCount: 1, machines: [{ tier: 'Advanced', status: 'active' }] },
+    { id: 'preview_l2_1', username: 'usman88', fullName: 'Usman Ahmed', email: 'usman.preview@cloudnova.test', myReferralCode: 'USMAN88', depositStatus: 'completed', depositedAmount: 180, withdrawalAmount: 60, withdrawalCount: 1, balance: 120, machineCount: 1, machines: [{ tier: 'Premium', status: 'active' }] },
+    { id: 'preview_l2_2', username: 'ayesha_pk', fullName: 'Ayesha Noor', email: 'ayesha.preview@cloudnova.test', myReferralCode: 'AYESHA7', depositStatus: 'completed', depositedAmount: 80, withdrawalAmount: 20, withdrawalCount: 1, balance: 60, machineCount: 0, machines: [] },
+    { id: 'preview_l3_1', username: 'bilal2026', fullName: 'Bilal Shah', email: 'bilal.preview@cloudnova.test', myReferralCode: 'BILAL26', depositStatus: 'completed', depositedAmount: 50, withdrawalAmount: 10, withdrawalCount: 1, balance: 40, machineCount: 1, machines: [{ tier: 'Basic', status: 'active' }] }
+  ].map((member, index) => ({ ...member, level: index < 3 ? 1 : index < 5 ? 2 : 3 }));
+  return users.map((user, index) => index === 0 ? { ...user, team: [previewMembers.filter(member => member.level === 1), previewMembers.filter(member => member.level === 2), previewMembers.filter(member => member.level === 3)] } : user);
+};
+
 export default function Admin() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('dashboard');
@@ -51,6 +74,8 @@ export default function Admin() {
   const [timeAccess, setTimeAccess] = useState({});
 
   const userRole = localStorage.getItem('userRole') || '';
+  const teamUsers = getPreviewTeamUsers(users);
+  const isTeamPreview = new URLSearchParams(window.location.search).get('preview') === 'team';
 
   useEffect(() => {
     if (!token() || userRole !== 'admin') { navigate('/login'); return; }
@@ -326,12 +351,13 @@ export default function Admin() {
         {tab === 'teams' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-              <div><div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Referral Teams</div><div style={{ marginTop: '4px', color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>Search a user to view their referral team.</div></div>
+              <div><div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Referral Teams {isTeamPreview && <span style={{ color: '#fbbf24', fontSize: '10px' }}>· LOCAL PREVIEW</span>}</div><div style={{ marginTop: '4px', color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>Search name, username, email or referral code to view complete team details.</div></div>
               <input placeholder="Search name, email or username..." value={teamSearch} onChange={e => setTeamSearch(e.target.value)} style={{ width: '280px', maxWidth: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '9px', padding: '10px 12px', color: '#fff', outline: 'none', fontSize: '12px' }} />
             </div>
-            {users.filter(user => !teamSearch || [user.fullName, user.email, user.username].some(value => value?.toLowerCase().includes(teamSearch.toLowerCase()))).map(user => {
+            {teamUsers.filter(user => !teamSearch || [user.fullName, user.email, user.username, user.myReferralCode].some(value => value?.toLowerCase().includes(teamSearch.toLowerCase()))).map(user => {
               const teamMembers = (user.team || []).flatMap((level, levelIndex) => level.map(member => ({ ...member, level: levelIndex + 1 })));
-              return <div key={user.id} style={card}><div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}><div><div style={{ color: '#fff', fontWeight: '800', fontSize: '14px' }}>{user.fullName}</div><div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>{user.email} · Referral: {user.myReferralCode}</div></div><div style={{ color: '#67e8f9', fontSize: '12px', fontWeight: '800' }}>Total Team: {teamMembers.length}</div></div>{teamMembers.length ? <div style={{ display: 'grid', gap: '7px' }}>{teamMembers.map(member => <div key={member.id} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '9px 10px', borderRadius: '9px', background: 'rgba(255,255,255,0.04)', fontSize: '11px' }}><span style={{ color: '#fbbf24', width: '45px' }}>Level {member.level}</span><span style={{ flex: 1, color: '#fff', fontWeight: '700' }}>{member.fullName}</span><span style={{ color: 'rgba(255,255,255,0.5)' }}>{member.depositStatus}</span><span style={{ color: '#34d399' }}>${Number(member.depositedAmount || 0).toFixed(2)}</span></div>)}</div> : <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>No referral team found.</div>}</div>;
+              const teamSummary = getTeamSummary(user, teamMembers);
+              return <div key={user.id} style={card}><div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}><div><div style={{ color: '#fff', fontWeight: '800', fontSize: '14px' }}>{user.fullName}</div><div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>{user.email} · Referral: {user.myReferralCode}</div></div><div style={{ color: '#67e8f9', fontSize: '12px', fontWeight: '800' }}>Total Team: {teamMembers.length}</div></div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '14px' }}>{teamSummary.map(summary => <div key={summary.level} style={{ padding: '10px', borderRadius: '9px', background: 'rgba(0,180,255,0.08)', border: '1px solid rgba(103,232,249,0.16)' }}><div style={{ color: '#67e8f9', fontWeight: '800', fontSize: '12px', marginBottom: '7px' }}>Level {summary.level} · {summary.members} members</div><div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', color: 'rgba(255,255,255,0.65)', fontSize: '10px' }}><span>Deposit</span><strong style={{ color: '#34d399' }}>${Number(summary.depositedAmount || 0).toFixed(2)}</strong></div><div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', color: 'rgba(255,255,255,0.65)', fontSize: '10px', marginTop: '4px' }}><span>Withdraw</span><strong style={{ color: '#fbbf24' }}>${Number(summary.withdrawalAmount || 0).toFixed(2)}</strong></div></div>)}</div>{teamMembers.length ? <div style={{ display: 'grid', gap: '10px' }}>{teamMembers.map(member => <div key={member.id} style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}><div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', fontSize: '11px' }}><span style={{ color: '#fbbf24', minWidth: '48px' }}>Level {member.level}</span><span style={{ color: '#fff', fontWeight: '800' }}>{member.fullName}</span><span style={{ color: 'rgba(255,255,255,0.5)' }}>{member.username || '—'}</span><span style={{ color: 'rgba(255,255,255,0.5)' }}>{member.email || '—'}</span><span style={{ color: member.depositStatus === 'completed' ? '#34d399' : '#fbbf24' }}>{member.depositStatus}</span></div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))', gap: '8px', marginTop: '10px' }}>{[['Balance', member.balance], ['Deposited', member.depositedAmount], ['Withdrawn', member.withdrawalAmount]].map(([label, amount]) => <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '7px', padding: '7px 8px' }}><div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>{label}</div><div style={{ color: label === 'Balance' ? '#67e8f9' : '#34d399', fontWeight: '800', marginTop: '2px' }}>${Number(amount || 0).toFixed(2)}</div></div>)}<div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '7px', padding: '7px 8px' }}><div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>Withdrawals</div><div style={{ color: '#fbbf24', fontWeight: '800', marginTop: '2px' }}>{member.withdrawalCount || 0}</div></div><div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '7px', padding: '7px 8px' }}><div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>Machines</div><div style={{ color: '#c4b5fd', fontWeight: '800', marginTop: '2px' }}>{member.machineCount || 0}</div></div></div><div style={{ marginTop: '9px', color: 'rgba(255,255,255,0.5)', fontSize: '10px' }}>Machines: {member.machines?.length ? member.machines.map(machine => `${machine.tier} (${machine.status})`).join(' · ') : 'No machine purchased'}</div></div>)}</div> : <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>No referral team found.</div>}</div>;
             })}
           </div>
         )}
