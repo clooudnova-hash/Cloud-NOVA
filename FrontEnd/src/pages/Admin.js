@@ -38,6 +38,7 @@ export default function Admin() {
   const [balanceAdj, setBalanceAdj] = useState({}); // { [userId]: { amount, note } }
   const [userSearch, setUserSearch] = useState('');
   const [txSearch, setTxSearch] = useState('');
+  const [teamSearch, setTeamSearch] = useState('');
   const [txType, setTxType] = useState('all');
   const [proofPreview, setProofPreview] = useState(null);
   const [machineTier, setMachineTier] = useState({});
@@ -167,6 +168,16 @@ export default function Admin() {
     setTimeout(() => setMsg(''), 3000);
   };
 
+  const removeMachine = async (user, machine) => {
+    if (!window.confirm(`Remove ${machine.tier} machine from ${user.fullName}?`)) return;
+    setLoading(true);
+    const res = await api(`/api/admin/users/${user.id}/machines/${machine.id}`, { method: 'DELETE' });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setLoading(false);
+    setTimeout(() => setMsg(''), 3000);
+  };
+
   const assignReferral = async (userId) => {
     const code = (referralCode[userId] || '').trim();
     if (!code) { setMsg('Referral code enter karo'); setTimeout(() => setMsg(''), 3000); return; }
@@ -237,7 +248,7 @@ export default function Admin() {
     setTimeout(() => setMsg(''), 3000);
   };
 
-  const tabs = ['dashboard', 'transactions', 'users', 'bonus', 'winner', 'tasks'];
+  const tabs = ['dashboard', 'transactions', 'users', 'teams', 'bonus', 'winner', 'tasks'];
 
   return (
     <div className="premium-page" style={{ minHeight: '100vh', background: '#080c1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', padding: '0 0 40px' }}>
@@ -275,7 +286,7 @@ export default function Admin() {
             borderRadius: '8px 8px 0 0', padding: '10px 20px', color: tab === t ? '#7dd3fc' : 'rgba(255,255,255,0.4)',
             fontSize: '13px', fontWeight: tab === t ? '700' : '500', cursor: 'pointer',
             textTransform: 'capitalize',
-          }}>{t === 'dashboard' ? '📊 Dashboard' : t === 'transactions' ? '💸 Transactions' : t === 'users' ? '👥 Users' : t === 'bonus' ? '🎫 Bonus Codes' : t === 'winner' ? '🏆 Weekly Winner' : '✅ Task Claims'}</button>
+          }}>{t === 'dashboard' ? '📊 Dashboard' : t === 'transactions' ? '💸 Transactions' : t === 'users' ? '👥 Users' : t === 'teams' ? '👥 Referral Teams' : t === 'bonus' ? '🎫 Bonus Codes' : t === 'winner' ? '🏆 Weekly Winner' : '✅ Task Claims'}</button>
         ))}
       </div>
 
@@ -297,6 +308,19 @@ export default function Admin() {
               <div style={{ display: 'grid', gap: '10px' }}>{weeklyWinner.winners.map((winner, index) => <div key={index} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}><span style={{ width: '34px', color: '#fbbf24', fontWeight: '800' }}>{index + 1}.</span><input value={winner.name} onChange={e => setWeeklyWinner(prev => ({ ...prev, winners: prev.winners.map((item, itemIndex) => itemIndex === index ? { ...item, name: e.target.value } : item) }))} placeholder={`Winner ${index + 1}`} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /><input type="number" min="0" value={winner.amount} onChange={e => setWeeklyWinner(prev => ({ ...prev, winners: prev.winners.map((item, itemIndex) => itemIndex === index ? { ...item, amount: e.target.value } : item) }))} placeholder="Amount" style={{ width: '120px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>)}</div>
               <button type="button" onClick={updateWeeklyWinner} disabled={loading} style={{ ...btn('linear-gradient(135deg, #00b4ff, #7c3aed)'), marginTop: '18px', padding: '11px 22px' }}>Save Weekly Winner</button>
             </div>
+          </div>
+        )}
+
+        {tab === 'teams' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+              <div><div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Referral Teams</div><div style={{ marginTop: '4px', color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>Search a user to view their referral team.</div></div>
+              <input placeholder="Search name, email or username..." value={teamSearch} onChange={e => setTeamSearch(e.target.value)} style={{ width: '280px', maxWidth: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '9px', padding: '10px 12px', color: '#fff', outline: 'none', fontSize: '12px' }} />
+            </div>
+            {users.filter(user => !teamSearch || [user.fullName, user.email, user.username].some(value => value?.toLowerCase().includes(teamSearch.toLowerCase()))).map(user => {
+              const teamMembers = (user.team || []).flatMap((level, levelIndex) => level.map(member => ({ ...member, level: levelIndex + 1 })));
+              return <div key={user.id} style={card}><div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}><div><div style={{ color: '#fff', fontWeight: '800', fontSize: '14px' }}>{user.fullName}</div><div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>{user.email} · Referral: {user.myReferralCode}</div></div><div style={{ color: '#67e8f9', fontSize: '12px', fontWeight: '800' }}>Total Team: {teamMembers.length}</div></div>{teamMembers.length ? <div style={{ display: 'grid', gap: '7px' }}>{teamMembers.map(member => <div key={member.id} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '9px 10px', borderRadius: '9px', background: 'rgba(255,255,255,0.04)', fontSize: '11px' }}><span style={{ color: '#fbbf24', width: '45px' }}>Level {member.level}</span><span style={{ flex: 1, color: '#fff', fontWeight: '700' }}>{member.fullName}</span><span style={{ color: 'rgba(255,255,255,0.5)' }}>{member.depositStatus}</span><span style={{ color: '#34d399' }}>${Number(member.depositedAmount || 0).toFixed(2)}</span></div>)}</div> : <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>No referral team found.</div>}</div>;
+            })}
           </div>
         )}
 
@@ -537,7 +561,7 @@ export default function Admin() {
                     <div style={{ flex: '1 1 320px', minWidth: '280px' }}>
                       <label style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase' }}>Purchased Machines ({u.miningContracts?.length || 0})</label>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {u.miningContracts?.length ? u.miningContracts.map(machine => <span key={machine.id} style={{ background: machine.status === 'active' ? 'rgba(16,185,129,0.14)' : 'rgba(148,163,184,0.12)', border: `1px solid ${machine.status === 'active' ? 'rgba(52,211,153,0.3)' : 'rgba(148,163,184,0.2)'}`, color: machine.status === 'active' ? '#6ee7b7' : '#94a3b8', borderRadius: '7px', padding: '5px 8px', fontSize: '10px', fontWeight: '700' }}>{machine.tier} · ${Number(machine.cost).toFixed(2)} · {machine.status}</span>) : <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>No machine purchased</span>}
+                        {u.miningContracts?.length ? u.miningContracts.map(machine => <span key={machine.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: machine.status === 'active' ? 'rgba(16,185,129,0.14)' : 'rgba(148,163,184,0.12)', border: `1px solid ${machine.status === 'active' ? 'rgba(52,211,153,0.3)' : 'rgba(148,163,184,0.2)'}`, color: machine.status === 'active' ? '#6ee7b7' : '#94a3b8', borderRadius: '7px', padding: '5px 8px', fontSize: '10px', fontWeight: '700' }}>{machine.tier} · ${Number(machine.cost).toFixed(2)} · {machine.status}<button type="button" aria-label={`Remove ${machine.tier} machine`} onClick={() => removeMachine(u, machine)} disabled={loading} style={{ border: 0, background: 'transparent', color: '#f87171', fontWeight: '900', cursor: 'pointer', padding: '0 2px' }}>×</button></span>) : <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>No machine purchased</span>}
                       </div>
                     </div>
 

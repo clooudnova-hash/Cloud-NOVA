@@ -642,7 +642,7 @@ app.get('/api/admin/users', verifyToken, (req, res) => {
     const vip = syncVipLevel(u);
     const w = wallets.find(wl => wl.userId === u.id) || {};
     const upline = users.find(user => user.id === u.referredBy);
-    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0, allowDepositOutsideHours: Boolean(u.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(u.allowWithdrawalOutsideHours), miningContracts: getMiningSummary(u.id) };
+    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0, allowDepositOutsideHours: Boolean(u.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(u.allowWithdrawalOutsideHours), miningContracts: getMiningSummary(u.id), team: getTeamTree(u.id) };
   });
   return res.status(200).json(result);
 });
@@ -693,6 +693,15 @@ app.post('/api/admin/users/add-machine', verifyToken, (req, res) => {
     syncMiningWallet(userId);
     return res.status(201).json({ success: true, contract, message: `${tier} machine added to ${user.username}.` });
   } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/admin/users/:userId/machines/:machineId', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  const machineIndex = miningContracts.findIndex(contract => contract.id === req.params.machineId && contract.userId === req.params.userId);
+  if (machineIndex === -1) return res.status(404).json({ message: 'Machine not found for this user.' });
+  const [removedMachine] = miningContracts.splice(machineIndex, 1);
+  syncMiningWallet(req.params.userId);
+  return res.status(200).json({ success: true, message: `${removedMachine.tier} machine removed.`, machineId: removedMachine.id });
 });
 
 app.post('/api/admin/users/set-referral', verifyToken, (req, res) => {
