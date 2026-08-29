@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Shield, MessageCircle, BarChart3, CreditCard, Users, Ticket, Trophy, Clock,
+  Check, X, ChevronLeft, Plus, Trash2
+} from 'lucide-react';
 
 const token = () => localStorage.getItem('token');
 
@@ -300,29 +304,60 @@ export default function Admin() {
       {/* Header */}
       <div style={{ background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #00b4ff, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🛡️</div>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #00b4ff, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Shield size={20} color="white" />
+          </div>
           <div>
             <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>CloudNova Admin</div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Control Panel</div>
           </div>
         </div>
-        <button onClick={() => navigate('/')} style={{ ...btn('rgba(255,255,255,0.08)'), border: '1px solid rgba(255,255,255,0.1)' }}>← Back to App</button>
+        <button onClick={() => navigate('/')} style={{ ...btn('rgba(255,255,255,0.08)'), border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ChevronLeft size={16} />
+          Back to App
+        </button>
       </div>
 
       {/* Toast */}
-      {msg && <div style={{ background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,180,255,0.3)', color: '#7dd3fc', fontSize: '13px', padding: '10px 24px', textAlign: 'center' }}>💬 {msg}</div>}
+      {msg && (
+        <div style={{ background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,180,255,0.3)', color: '#7dd3fc', fontSize: '13px', padding: '12px 24px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <MessageCircle size={16} />
+          {msg}
+        </div>
+      )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', padding: '16px 24px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            background: tab === t ? 'linear-gradient(135deg, #00b4ff22, #7c3aed22)' : 'transparent',
-            border: tab === t ? '1px solid rgba(0,180,255,0.3)' : '1px solid transparent',
-            borderRadius: '8px 8px 0 0', padding: '10px 20px', color: tab === t ? '#7dd3fc' : 'rgba(255,255,255,0.4)',
-            fontSize: '13px', fontWeight: tab === t ? '700' : '500', cursor: 'pointer',
-            textTransform: 'capitalize',
-          }}>{t === 'dashboard' ? '📊 Dashboard' : t === 'transactions' ? '💸 Transactions' : t === 'users' ? '👥 Users' : t === 'teams' ? '👥 Referral Teams' : t === 'bonus' ? '🎫 Bonus Codes' : t === 'winner' ? '🏆 Weekly Highlights' : '✅ Task Claims'}</button>
-        ))}
+      <div style={{ display: 'flex', gap: '4px', padding: '16px 24px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto', overflowY: 'hidden' }}>
+        {tabs.map(t => {
+          const icons = {
+            dashboard: <BarChart3 size={14} />,
+            transactions: <CreditCard size={14} />,
+            users: <Users size={14} />,
+            teams: <Users size={14} />,
+            bonus: <Ticket size={14} />,
+            winner: <Trophy size={14} />
+          };
+          const labels = {
+            dashboard: 'Dashboard',
+            transactions: 'Transactions',
+            users: 'Users',
+            teams: 'Referral Teams',
+            bonus: 'Bonus Codes',
+            winner: 'Weekly Highlights'
+          };
+          return (
+            <button key={t} onClick={() => setTab(t)} style={{
+              background: tab === t ? 'linear-gradient(135deg, #00b4ff22, #7c3aed22)' : 'transparent',
+              border: tab === t ? '1px solid rgba(0,180,255,0.3)' : '1px solid transparent',
+              borderRadius: '8px 8px 0 0', padding: '10px 16px', color: tab === t ? '#7dd3fc' : 'rgba(255,255,255,0.4)',
+              fontSize: '12px', fontWeight: tab === t ? '700' : '500', cursor: 'pointer',
+              textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap'
+            }}>
+              {icons[t]}
+              {labels[t]}
+            </button>
+          );
+        })}
       </div>
 
       <div style={{ padding: '24px' }}>
@@ -330,7 +365,10 @@ export default function Admin() {
         {tab === 'winner' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={card}>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '6px' }}>🏆 Weekly Highlights</div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Trophy size={18} />
+                Weekly Highlights
+              </div>
               <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px', marginBottom: '20px' }}>Ye details Home screen par clickable winner line mein show hongi.</div>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ flex: '1 1 220px' }}><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>BEST DEPOSITOR</label><input value={weeklyWinner.depositorName} onChange={e => setWeeklyWinner(prev => ({ ...prev, depositorName: e.target.value }))} placeholder="Name" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} /></div>
@@ -342,8 +380,14 @@ export default function Admin() {
             </div>
             <div style={card}>
               <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '14px' }}>Publish or remove from Home</div>
-              <button type="button" onClick={updateWeeklyWinner} disabled={loading} style={{ ...btn('linear-gradient(135deg, #00b4ff, #7c3aed)'), marginRight: '8px', padding: '11px 22px' }}>Publish Highlights</button>
-              <button type="button" onClick={removeWeeklyWinner} disabled={loading} style={{ ...btn('#ef4444'), marginTop: '18px', padding: '11px 22px' }}>Remove from Home</button>
+              <button type="button" onClick={updateWeeklyWinner} disabled={loading} style={{ ...btn('linear-gradient(135deg, #00b4ff, #7c3aed)'), marginRight: '8px', padding: '11px 22px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Check size={14} />
+                Publish Highlights
+              </button>
+              <button type="button" onClick={removeWeeklyWinner} disabled={loading} style={{ ...btn('#ef4444'), marginTop: '18px', padding: '11px 22px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Trash2 size={14} />
+                Remove from Home
+              </button>
             </div>
           </div>
         )}
@@ -351,13 +395,124 @@ export default function Admin() {
         {tab === 'teams' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ ...card, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-              <div><div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>Referral Teams {isTeamPreview && <span style={{ color: '#fbbf24', fontSize: '10px' }}>· LOCAL PREVIEW</span>}</div><div style={{ marginTop: '4px', color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>Search name, username, email or referral code to view complete team details.</div></div>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={18} />
+                  Referral Teams
+                  {isTeamPreview && <span style={{ color: '#fbbf24', fontSize: '10px' }}>· LOCAL PREVIEW</span>}
+                </div>
+                <div style={{ marginTop: '4px', color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>Search name, username, email or referral code to view complete team details.</div>
+              </div>
               <input placeholder="Search name, email or username..." value={teamSearch} onChange={e => setTeamSearch(e.target.value)} style={{ width: '280px', maxWidth: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '9px', padding: '10px 12px', color: '#fff', outline: 'none', fontSize: '12px' }} />
             </div>
             {teamUsers.filter(user => !teamSearch || [user.fullName, user.email, user.username, user.myReferralCode].some(value => value?.toLowerCase().includes(teamSearch.toLowerCase()))).map(user => {
               const teamMembers = (user.team || []).flatMap((level, levelIndex) => level.map(member => ({ ...member, level: levelIndex + 1 })));
               const teamSummary = getTeamSummary(user, teamMembers);
-              return <div key={user.id} style={card}><div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}><div><div style={{ color: '#fff', fontWeight: '800', fontSize: '14px' }}>{user.fullName}</div><div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>{user.email} · Referral: {user.myReferralCode}</div></div><div style={{ color: '#67e8f9', fontSize: '12px', fontWeight: '800' }}>Total Team: {teamMembers.length}</div></div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '14px' }}>{teamSummary.map(summary => <div key={summary.level} style={{ padding: '10px', borderRadius: '9px', background: 'rgba(0,180,255,0.08)', border: '1px solid rgba(103,232,249,0.16)' }}><div style={{ color: '#67e8f9', fontWeight: '800', fontSize: '12px', marginBottom: '7px' }}>Level {summary.level} · {summary.members} members</div><div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', color: 'rgba(255,255,255,0.65)', fontSize: '10px' }}><span>Deposit</span><strong style={{ color: '#34d399' }}>${Number(summary.depositedAmount || 0).toFixed(2)}</strong></div><div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', color: 'rgba(255,255,255,0.65)', fontSize: '10px', marginTop: '4px' }}><span>Withdraw</span><strong style={{ color: '#fbbf24' }}>${Number(summary.withdrawalAmount || 0).toFixed(2)}</strong></div></div>)}</div>{teamMembers.length ? <div style={{ display: 'grid', gap: '10px' }}>{teamMembers.map(member => <div key={member.id} style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}><div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', fontSize: '11px' }}><span style={{ color: '#fbbf24', minWidth: '48px' }}>Level {member.level}</span><span style={{ color: '#fff', fontWeight: '800' }}>{member.fullName}</span><span style={{ color: 'rgba(255,255,255,0.5)' }}>{member.username || '—'}</span><span style={{ color: 'rgba(255,255,255,0.5)' }}>{member.email || '—'}</span><span style={{ color: member.depositStatus === 'completed' ? '#34d399' : '#fbbf24' }}>{member.depositStatus}</span></div><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))', gap: '8px', marginTop: '10px' }}>{[['Balance', member.balance], ['Deposited', member.depositedAmount], ['Withdrawn', member.withdrawalAmount]].map(([label, amount]) => <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '7px', padding: '7px 8px' }}><div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>{label}</div><div style={{ color: label === 'Balance' ? '#67e8f9' : '#34d399', fontWeight: '800', marginTop: '2px' }}>${Number(amount || 0).toFixed(2)}</div></div>)}<div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '7px', padding: '7px 8px' }}><div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>Withdrawals</div><div style={{ color: '#fbbf24', fontWeight: '800', marginTop: '2px' }}>{member.withdrawalCount || 0}</div></div><div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '7px', padding: '7px 8px' }}><div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>Machines</div><div style={{ color: '#c4b5fd', fontWeight: '800', marginTop: '2px' }}>{member.machineCount || 0}</div></div></div><div style={{ marginTop: '9px', color: 'rgba(255,255,255,0.5)', fontSize: '10px' }}>Machines: {member.machines?.length ? member.machines.map(machine => `${machine.tier} (${machine.status})`).join(' · ') : 'No machine purchased'}</div></div>)}</div> : <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>No referral team found.</div>}</div>;
+              
+              // Enhanced stats by level
+              const level1 = teamMembers.filter(m => m.level === 1);
+              const level2 = teamMembers.filter(m => m.level === 2);
+              const level3 = teamMembers.filter(m => m.level === 3);
+              
+              const level1Investors = level1.filter(m => m.depositedAmount > 0);
+              const level2Investors = level2.filter(m => m.depositedAmount > 0);
+              const level3Investors = level3.filter(m => m.depositedAmount > 0);
+              
+              const level1WithMachines = level1.filter(m => m.machineCount > 0 || m.machines?.length > 0);
+              const level2WithMachines = level2.filter(m => m.machineCount > 0 || m.machines?.length > 0);
+              const level3WithMachines = level3.filter(m => m.machineCount > 0 || m.machines?.length > 0);
+              
+              return (
+                <div key={user.id} style={card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                    <div>
+                      <div style={{ color: '#fff', fontWeight: '800', fontSize: '14px' }}>{user.fullName}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>{user.email} · Referral: {user.myReferralCode}</div>
+                    </div>
+                    <div style={{ color: '#67e8f9', fontSize: '12px', fontWeight: '800' }}>Total Team: {teamMembers.length}</div>
+                  </div>
+                  
+                  {/* Level Statistics */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '20px', padding: '14px', background: 'rgba(0,180,255,0.06)', borderRadius: '10px', border: '1px solid rgba(0,180,255,0.15)' }}>
+                    {/* Level 1 Stats */}
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: '#7dd3fc', marginBottom: '8px' }}>Level 1 Overview</div>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', display: 'grid', gap: '4px' }}>
+                        <div>Total Members: <strong style={{ color: '#fff' }}>{level1.length}</strong></div>
+                        <div>Active Investors: <strong style={{ color: '#34d399' }}>{level1Investors.length}</strong></div>
+                        <div>With Machines: <strong style={{ color: '#fbbf24' }}>{level1WithMachines.length}</strong></div>
+                        <div>Total Deposit: <strong style={{ color: '#34d399' }}>${level1.reduce((s, m) => s + (m.depositedAmount || 0), 0).toFixed(2)}</strong></div>
+                        <div>Total Withdraw: <strong style={{ color: '#fbbf24' }}>${level1.reduce((s, m) => s + (m.withdrawalAmount || 0), 0).toFixed(2)}</strong></div>
+                      </div>
+                    </div>
+                    
+                    {/* Level 2 Stats */}
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: '#7dd3fc', marginBottom: '8px' }}>Level 2 Overview</div>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', display: 'grid', gap: '4px' }}>
+                        <div>Total Members: <strong style={{ color: '#fff' }}>{level2.length}</strong></div>
+                        <div>Active Investors: <strong style={{ color: '#34d399' }}>{level2Investors.length}</strong></div>
+                        <div>With Machines: <strong style={{ color: '#fbbf24' }}>{level2WithMachines.length}</strong></div>
+                        <div>Total Deposit: <strong style={{ color: '#34d399' }}>${level2.reduce((s, m) => s + (m.depositedAmount || 0), 0).toFixed(2)}</strong></div>
+                        <div>Total Withdraw: <strong style={{ color: '#fbbf24' }}>${level2.reduce((s, m) => s + (m.withdrawalAmount || 0), 0).toFixed(2)}</strong></div>
+                      </div>
+                    </div>
+                    
+                    {/* Level 3 Stats */}
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: '#7dd3fc', marginBottom: '8px' }}>Level 3 Overview</div>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', display: 'grid', gap: '4px' }}>
+                        <div>Total Members: <strong style={{ color: '#fff' }}>{level3.length}</strong></div>
+                        <div>Active Investors: <strong style={{ color: '#34d399' }}>{level3Investors.length}</strong></div>
+                        <div>With Machines: <strong style={{ color: '#fbbf24' }}>{level3WithMachines.length}</strong></div>
+                        <div>Total Deposit: <strong style={{ color: '#34d399' }}>${level3.reduce((s, m) => s + (m.depositedAmount || 0), 0).toFixed(2)}</strong></div>
+                        <div>Total Withdraw: <strong style={{ color: '#fbbf24' }}>${level3.reduce((s, m) => s + (m.withdrawalAmount || 0), 0).toFixed(2)}</strong></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Detailed Member List */}
+                  {teamMembers.length ? (
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: '700', color: '#a78bfa', marginBottom: '4px' }}>All Team Members ({teamMembers.length})</div>
+                      {teamMembers.map(member => (
+                        <div key={member.id} style={{ padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.04)', border: member.machineCount > 0 || member.machines?.length > 0 ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(255,255,255,0.06)', display: 'grid', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{ color: '#fbbf24', fontWeight: '800', minWidth: '60px' }}>Level {member.level}</span>
+                                <span style={{ color: '#fff', fontWeight: '800', fontSize: '13px' }}>{member.fullName}</span>
+                                {(member.machineCount > 0 || member.machines?.length > 0) && <span style={{ background: 'rgba(251,191,36,0.2)', color: '#fbbf24', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: '700' }}>⛏️ {member.machineCount || member.machines?.length} Machine{(member.machineCount || member.machines?.length) > 1 ? 's' : ''}</span>}
+                              </div>
+                              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '10px', marginBottom: '6px' }}>
+                                {member.email} · {member.username}
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', fontSize: '10px' }}>
+                                <div style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                  Deposit: <strong style={{ color: '#34d399' }}>${(member.depositedAmount || 0).toFixed(2)}</strong>
+                                </div>
+                                <div style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                  Withdrawn: <strong style={{ color: '#fbbf24' }}>${(member.withdrawalAmount || 0).toFixed(2)}</strong>
+                                </div>
+                                <div style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                  Balance: <strong style={{ color: '#7dd3fc' }}>${(member.balance || 0).toFixed(2)}</strong>
+                                </div>
+                              </div>
+                              {member.machines?.length > 0 && (
+                                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '10px', color: '#fbbf24' }}>
+                                  Machines: {member.machines.map(m => `${m.tier} (${m.status})`).join(', ')}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', textAlign: 'center', padding: '20px' }}>No referral team found.</div>
+                  )}
+                </div>
+              );
             })}
           </div>
         )}
@@ -376,13 +531,15 @@ export default function Admin() {
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
               {[
-                { label: 'Total Users', value: metrics?.totalUsers ?? '—', icon: '👥', color: '#00b4ff' },
-                { label: 'System Funds', value: metrics ? `$${Number(metrics.systemFunds).toFixed(2)}` : '—', icon: '💰', color: '#10b981' },
-                { label: 'Total Transactions', value: metrics?.activeContracts ?? '—', icon: '📋', color: '#f59e0b' },
-                { label: 'Pending', value: transactions.filter(t => t.status === 'pending').length, icon: '⏳', color: '#ef4444' },
-              ].map(({ label, value, icon, color }) => (
+                { label: 'Total Users', value: metrics?.totalUsers ?? '—', icon: Users, color: '#00b4ff' },
+                { label: 'System Funds', value: metrics ? `$${Number(metrics.systemFunds).toFixed(2)}` : '—', icon: CreditCard, color: '#10b981' },
+                { label: 'Total Transactions', value: metrics?.activeContracts ?? '—', icon: BarChart3, color: '#f59e0b' },
+                { label: 'Pending', value: transactions.filter(t => t.status === 'pending').length, icon: Clock, color: '#ef4444' },
+              ].map(({ label, value, icon: IconComponent, color }) => (
                 <div key={label} style={{ ...card, display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>{icon}</div>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <IconComponent size={24} color={color} />
+                  </div>
                   <div>
                     <div style={{ fontSize: '24px', fontWeight: '800', color }}>{value}</div>
                     <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>{label}</div>
@@ -393,7 +550,10 @@ export default function Admin() {
 
             {/* Recent transactions */}
             <div style={card}>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '16px' }}>⏳ Pending Transactions</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={16} />
+                Pending Transactions
+              </div>
               {transactions.filter(t => t.status === 'pending').length === 0
                 ? <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Koi pending transaction nahi hai</div>
                 : transactions.filter(t => t.status === 'pending').slice(0, 5).map(tx => (
@@ -403,8 +563,12 @@ export default function Admin() {
                       <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>{tx.userId} · {tx.network}</div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={() => txAction(tx.id, 'approve')} disabled={loading} style={btn('#10b981')}>✅ Approve</button>
-                      <button onClick={() => txAction(tx.id, 'reject')} disabled={loading} style={btn('#ef4444')}>❌ Reject</button>
+                      <button onClick={() => txAction(tx.id, 'approve')} disabled={loading} style={btn('#10b981')} title="Approve">
+                        <Check size={14} />
+                      </button>
+                      <button onClick={() => txAction(tx.id, 'reject')} disabled={loading} style={btn('#ef4444')} title="Reject">
+                        <X size={14} />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -416,8 +580,9 @@ export default function Admin() {
         {tab === 'transactions' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>
-                💸 All Transactions ({transactions.length})
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={16} />
+                All Transactions ({transactions.length})
                 <span style={{ marginLeft: '12px', fontSize: '11px', color: '#f59e0b', fontWeight: '600' }}>
                   Pending: {transactions.filter(t => t.status === 'pending').length}
                 </span>
@@ -495,8 +660,12 @@ export default function Admin() {
                                   <td style={{ padding: '10px 12px' }}>
                                     {tx.status === 'pending' && (
                                       <div style={{ display: 'flex', gap: '6px' }}>
-                                        <button onClick={() => txAction(tx.id, 'approve')} disabled={loading} style={btn('#10b981')}>✅</button>
-                                        <button onClick={() => txAction(tx.id, 'reject')} disabled={loading} style={btn('#ef4444')}>❌</button>
+                                        <button onClick={() => txAction(tx.id, 'approve')} disabled={loading} style={btn('#10b981')} title="Approve">
+                                          <Check size={14} />
+                                        </button>
+                                        <button onClick={() => txAction(tx.id, 'reject')} disabled={loading} style={btn('#ef4444')} title="Reject">
+                                          <X size={14} />
+                                        </button>
                                       </div>
                                     )}
                                   </td>
@@ -517,7 +686,10 @@ export default function Admin() {
         {tab === 'users' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>👥 Registered Users ({users.length})</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={16} />
+                Registered Users ({users.length})
+              </div>
               <input
                 placeholder="Search by name or email..."
                 value={userSearch}
@@ -690,7 +862,10 @@ export default function Admin() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Add new */}
             <div style={card}>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '16px' }}>➕ Naya Bonus Code Add Karo</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={16} />
+                Naya Bonus Code Add Karo
+              </div>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div>
                   <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase' }}>Code</label>
@@ -718,7 +893,10 @@ export default function Admin() {
 
             {/* Existing codes */}
             <div style={card}>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '16px' }}>🎫 Sab Bonus Codes ({bonusCodes.length})</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Ticket size={16} />
+                Sab Bonus Codes ({bonusCodes.length})
+              </div>
               {bonusCodes.length === 0
                 ? <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Koi code nahi hai</div>
                 : (
@@ -735,8 +913,12 @@ export default function Admin() {
                           </span>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => toggleCode(c.code)} style={btn(c.active ? '#f59e0b' : '#10b981')}>{c.active ? '⏸ Deactivate' : '▶ Activate'}</button>
-                          <button onClick={() => deleteCode(c.code)} style={btn('#ef4444')}>🗑 Delete</button>
+                          <button onClick={() => toggleCode(c.code)} style={btn(c.active ? '#f59e0b' : '#10b981')} title={c.active ? "Deactivate" : "Activate"}>
+                            {c.active ? '⏸' : '▶'} {c.active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button onClick={() => deleteCode(c.code)} style={btn('#ef4444')} title="Delete">
+                            <Trash2 size={14} /> Delete
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -749,8 +931,9 @@ export default function Admin() {
         {/* TASK CLAIMS */}
         {tab === 'tasks' && (
           <div style={card}>
-            <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '16px' }}>
-              ✅ Task Reward Claims ({taskClaims.length})
+            <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Check size={16} />
+              Task Reward Claims ({taskClaims.length})
               <span style={{ marginLeft: '12px', fontSize: '11px', color: '#f59e0b', fontWeight: '600' }}>
                 Pending: {taskClaims.filter(c => c.status === 'pending').length}
               </span>
@@ -775,11 +958,18 @@ export default function Admin() {
                           fontSize: '11px', fontWeight: '700', borderRadius: '6px', padding: '3px 10px',
                           background: c.status === 'pending' ? 'rgba(245,158,11,0.15)' : c.status === 'approved' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
                           color: c.status === 'pending' ? '#f59e0b' : c.status === 'approved' ? '#10b981' : '#ef4444',
-                        }}>{c.status === 'approved' ? `✅ Approved (+$${c.reward})` : c.status === 'rejected' ? '❌ Rejected' : '⏳ Pending'}</span>
+                          display: 'flex', alignItems: 'center', gap: '4px'
+                        }}>
+                          {c.status === 'approved' ? <><Check size={12} /> Approved (+${c.reward})</> : c.status === 'rejected' ? <><X size={12} /> Rejected</> : <><Clock size={12} /> Pending</>}
+                        </span>
                         {c.status === 'pending' && (
                           <>
-                            <button onClick={() => claimAction(c.id, 'approve')} disabled={loading} style={btn('#10b981')}>✅ Approve</button>
-                            <button onClick={() => claimAction(c.id, 'reject')} disabled={loading} style={btn('#ef4444')}>❌ Reject</button>
+                            <button onClick={() => claimAction(c.id, 'approve')} disabled={loading} style={btn('#10b981')} title="Approve">
+                              <Check size={14} />
+                            </button>
+                            <button onClick={() => claimAction(c.id, 'reject')} disabled={loading} style={btn('#ef4444')} title="Reject">
+                              <X size={14} />
+                            </button>
                           </>
                         )}
                       </div>
