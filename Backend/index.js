@@ -36,6 +36,31 @@ app.get('/api/market/btc', async (req, res) => {
 const FRONTEND_BUILD = path.join(__dirname, '..', 'FrontEnd', 'build');
 app.use(express.static(FRONTEND_BUILD));
 
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+app.use('/uploads', express.static(UPLOADS_DIR));
+
+const saveProofImageFile = (base64Data) => {
+  if (!base64Data || !/^data:image\/(png|jpe?g|webp);base64,/i.test(base64Data)) {
+    throw new Error('Please upload a valid payment screenshot.');
+  }
+
+  const match = base64Data.match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/i);
+  if (!match) {
+    throw new Error('Invalid image payload.');
+  }
+
+  const mime = match[1].toLowerCase();
+  const ext = mime === 'jpeg' ? 'jpg' : mime;
+  const fileName = `deposit-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+  const filePath = path.join(UPLOADS_DIR, fileName);
+
+  const buffer = Buffer.from(match[2], 'base64');
+  fs.writeFileSync(filePath, buffer);
+
+  return `/uploads/${fileName}`;
+};
+
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
@@ -165,11 +190,6 @@ const initializeState = async () => {
   }
   await persistState();
 };
-
-app.use((req, res, next) => {
-  res.on('finish', persistState);
-  next();
-});
 
 const findUpline = (referralCode) => users.find(user => user.myReferralCode === referralCode);
 
@@ -416,8 +436,10 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
     const depositAmount = parseFloat(amount);
     if (network !== 'EasyPaisa') return res.status(400).json({ message: 'Deposits are available only through EasyPaisa.' });
     if (!txid || !network || !Number.isFinite(depositAmount) || depositAmount < MIN_DEPOSIT_AMOUNT) return res.status(400).json({ message: `Minimum deposit amount is $${MIN_DEPOSIT_AMOUNT.toFixed(2)}.` });
-    if (!proofImage || !/^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(proofImage) || proofImage.length > 7 * 1024 * 1024) return res.status(400).json({ message: 'Please upload a valid payment screenshot up to 5 MB.' });
+    if (!proofImage || proofImage.length > 7 * 1024 * 1024) return res.status(400).json({ message: 'Please upload a valid payment screenshot up to 5 MB.' });
     if (transactions.find(t => t.txid === txid)) return res.status(400).json({ message: 'Transaction hash already exists!' });
+
+    const proofImageUrl = saveProofImageFile(proofImage);
 
     const taxAmount = Number((depositAmount * DEPOSIT_TAX_RATE).toFixed(4));
     const totalToPay = Number((depositAmount + taxAmount).toFixed(4));
@@ -434,7 +456,7 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
       txid,
       status: depositSettings[0]?.autoApproveDeposits ? 'completed' : 'pending',
       date: new Date().toISOString(),
-      proofImage
+      proofImage: proofImageUrl
     };
     transactions.push(deposit);
     if (deposit.status === 'completed') {
