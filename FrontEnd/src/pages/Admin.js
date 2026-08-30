@@ -28,16 +28,6 @@ const btn = (color = '#00b4ff') => ({
 
 const statusColor = { pending: '#f59e0b', completed: '#10b981', rejected: '#ef4444' };
 
-const getTeamSummary = (user, teamMembers) => user.teamSummary || [0, 1, 2].map(levelIndex => {
-  const members = teamMembers.filter(member => member.level === levelIndex + 1);
-  return {
-    level: levelIndex + 1,
-    members: members.length,
-    depositedAmount: members.reduce((sum, member) => sum + Number(member.depositedAmount || 0), 0),
-    withdrawalAmount: members.reduce((sum, member) => sum + Number(member.withdrawalAmount || 0), 0)
-  };
-});
-
 const getPreviewTeamUsers = users => {
   if (new URLSearchParams(window.location.search).get('preview') !== 'team' || !users.length) return users;
   const previewMembers = [
@@ -407,8 +397,7 @@ export default function Admin() {
             </div>
             {teamUsers.filter(user => !teamSearch || [user.fullName, user.email, user.username, user.myReferralCode].some(value => value?.toLowerCase().includes(teamSearch.toLowerCase()))).map(user => {
               const teamMembers = (user.team || []).flatMap((level, levelIndex) => level.map(member => ({ ...member, level: levelIndex + 1 })));
-              const teamSummary = getTeamSummary(user, teamMembers);
-              
+
               // Enhanced stats by level
               const level1 = teamMembers.filter(m => m.level === 1);
               const level2 = teamMembers.filter(m => m.level === 2);
