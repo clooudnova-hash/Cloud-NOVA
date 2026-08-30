@@ -5,6 +5,9 @@ FrontEnd/node_modules/
 FrontEnd/build/
 FrontEnd/android/.gradle/
 FrontEnd/android/**/build/
+Backend/uploads/*
+!Backend/uploads/
+!Backend/uploads/.gitkeep
 npm-debug.log*
 Backend/data/*.json
 FrontEnd/android/local.properties

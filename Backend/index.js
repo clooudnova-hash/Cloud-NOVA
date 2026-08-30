@@ -37,7 +37,9 @@ const FRONTEND_BUILD = path.join(__dirname, '..', 'FrontEnd', 'build');
 app.use(express.static(FRONTEND_BUILD));
 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 const saveProofImageFile = (base64Data) => {
@@ -52,6 +54,10 @@ const saveProofImageFile = (base64Data) => {
 
   const mime = match[1].toLowerCase();
   const ext = mime === 'jpeg' ? 'jpg' : mime;
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+
   const fileName = `deposit-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
   const filePath = path.join(UPLOADS_DIR, fileName);
 
