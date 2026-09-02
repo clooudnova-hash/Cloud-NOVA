@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MachineCard from '../Components/MachineCard';
 
@@ -25,8 +25,6 @@ const MiningPlans = () => {
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState('');
   const [liveOffers, setLiveOffers] = useState([]);
-  const [offerTimers, setOfferTimers] = useState({});
-  const limitedSaleDuration = 72 * 60 * 60 * 1000;
 
   useEffect(() => {
     fetch('/api/public/machine-offers')
@@ -37,31 +35,6 @@ const MiningPlans = () => {
       })
       .catch(() => setLiveOffers([]));
   }, []);
-
-  useEffect(() => {
-    if (!liveOffers.length) return undefined;
-    const tick = () => {
-      const nextTimers = {};
-      liveOffers.forEach(offer => {
-        const endTime = new Date(offer.endAt || Date.now() + limitedSaleDuration).getTime();
-        nextTimers[offer.id] = Math.max(0, endTime - Date.now());
-      });
-      setOfferTimers(nextTimers);
-    };
-
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [liveOffers, limitedSaleDuration]);
-
-  const formatOfferCountdown = (milliseconds) => {
-    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
-  };
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState(null); // { machine }
@@ -107,13 +80,9 @@ const MiningPlans = () => {
 
   const normalLimitedOffers = liveMachineOffers.filter(offer => offer.category === 'limited' && offer.isCurrentlyActive !== false);
   const vipOffers = liveMachineOffers.filter(offer => offer.category === 'vip' && offer.isCurrentlyActive !== false);
-  const baseTabs = [
-    { key: 'plans', label: 'Mining Plans', count: plans.length },
-    { key: 'limited', label: 'Limited Offers', count: normalLimitedOffers.length }
-  ];
-  const availableTabs = vipOffers.length > 0
-    ? [...baseTabs, { key: 'vip', label: 'VIP Cloud Offers', count: vipOffers.length }]
-    : baseTabs;
+  const availableTabs = useMemo(() => vipOffers.length > 0
+    ? [{ key: 'plans', label: 'Mining Plans', count: plans.length }, { key: 'limited', label: 'Limited Offers', count: normalLimitedOffers.length }, { key: 'vip', label: 'VIP Cloud Offers', count: vipOffers.length }]
+    : [{ key: 'plans', label: 'Mining Plans', count: plans.length }, { key: 'limited', label: 'Limited Offers', count: normalLimitedOffers.length }], [normalLimitedOffers.length, plans.length, vipOffers.length]);
 
   useEffect(() => {
     const requestedTab = queryTab === 'vip' || queryTab === 'limited' ? queryTab : 'plans';
