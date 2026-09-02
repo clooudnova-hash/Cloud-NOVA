@@ -22,8 +22,11 @@ const configuredOrigins = String(process.env.CORS_ORIGIN || '')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);
+const allowAnyOrigin = configuredOrigins.includes('*');
 const allowedOrigins = new Set([
   ...configuredOrigins.filter(origin => origin !== '*'),
+  process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '',
+  process.env.RAILWAY_STATIC_URL || '',
   'http://localhost',
   'http://localhost:3000',
   'http://localhost:5000',
@@ -34,7 +37,7 @@ const allowedOrigins = new Set([
 ]);
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    if (!origin || allowAnyOrigin || allowedOrigins.has(origin)) return callback(null, true);
     return callback(new Error('Origin is not allowed by CORS.'));
   }
 };
