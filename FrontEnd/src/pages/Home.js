@@ -9,20 +9,7 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [showWinners, setShowWinners] = useState(false);
   const [weeklyWinner, setWeeklyWinner] = useState(null);
-  const [homeOffer, setHomeOffer] = useState(null);
-  const [offerCountdown, setOfferCountdown] = useState(0);
-
-  useEffect(() => {
-    if (!homeOffer?.endAt) {
-      setOfferCountdown(0);
-      return undefined;
-    }
-    const deadline = new Date(homeOffer.endAt).getTime();
-    const tick = () => setOfferCountdown(Math.max(0, deadline - Date.now()));
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [homeOffer]);
+  const [homeOffers, setHomeOffers] = useState([]);
 
   const formatOfferCountdown = milliseconds => {
     const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
@@ -105,19 +92,14 @@ export default function Home() {
     fetch('/api/public/machine-offers', { headers })
       .then(async response => {
         if (!response.ok) {
-          setHomeOffer(null);
+          setHomeOffers([]);
           return;
         }
         const data = await response.json();
         const offers = Array.isArray(data.offers) ? data.offers : [];
-        const vipOffer = offers.find(offer => {
-          const label = `${offer.title || ''} ${offer.tier || ''}`.toLowerCase();
-          return label.includes('vip') || label.includes('cloud vip');
-        });
-        const fallbackOffer = offers[0] || null;
-        setHomeOffer(vipOffer || fallbackOffer || null);
+        setHomeOffers(offers);
       })
-      .catch(() => setHomeOffer(null));
+      .catch(() => setHomeOffers([]));
   }, []);
 
   const userName = dashboard?.fullName || localStorage.getItem('userName') || 'Member';
@@ -142,19 +124,6 @@ export default function Home() {
     duration: `${contract.durationDays || 0} Days`,
     img: ['⚡', '💎', '🔷'][index % 3]
   }));
-
-  useEffect(() => {
-    if (!homeOffer?.endAt) {
-      setOfferCountdown(0);
-      return undefined;
-    }
-
-    const deadline = new Date(homeOffer.endAt).getTime();
-    const tick = () => setOfferCountdown(Math.max(0, deadline - Date.now()));
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [homeOffer]);
 
   return (
     <div className="premium-page" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
@@ -228,44 +197,33 @@ export default function Home() {
         <p style={{ textAlign: 'center', fontSize: '11px', color: '#94a3b8', marginTop: '10px', marginBottom: 0 }}>Please get your income every day, or it will disappear after 24 hours.</p>
       </div>
 
-      {homeOffer && (
-        <div style={{ padding: '14px 16px 0' }}>
-          <button
-            type="button"
-            onClick={() => window.location.assign('/plans?tab=' + (homeOffer.title?.toLowerCase().includes('vip') || homeOffer.tier?.toLowerCase().includes('vip') ? 'vip' : 'limited'))}
-            style={{
-              width: '100%',
-              borderRadius: '22px',
-              background: 'linear-gradient(135deg, #0b1a50 0%, #1d4ed8 40%, #0ea5e9 100%)',
-              border: '1px solid rgba(125,211,252,0.5)',
-              padding: '14px 16px',
-              color: '#ffffff',
-              fontWeight: '800',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              boxShadow: '0 16px 32px rgba(14,165,233,0.25), inset 0 1px 0 rgba(255,255,255,0.22)',
-              cursor: 'pointer',
-              transform: 'translateY(0)',
-              animation: 'cloudnovaNoticeIn 280ms ease-out, pulseOffer 2.2s ease-in-out infinite',
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left' }}>
-              <span style={{ width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: 'linear-gradient(135deg, #fbbf24, #f97316)', color: '#fff', fontSize: '16px', boxShadow: '0 8px 20px rgba(249,115,22,0.35)' }}>⚡</span>
-              <span>
-                <span style={{ display: 'block', color: '#dbeafe', fontSize: '9px', letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.9 }}>Limited Time Offer</span>
-                <span style={{ display: 'block', fontSize: '15px', fontWeight: '900', marginTop: '2px' }}>{homeOffer.title || 'VIP Machine Offer'} is live</span>
-              </span>
-            </span>
-
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', minWidth: '108px', padding: '8px 10px', fontWeight: '900', fontSize: '11px', letterSpacing: '0.06em', color: '#fef3c7' }}>
-                {formatOfferCountdown(offerCountdown)}
-              </span>
-              <span style={{ fontSize: '12px', fontWeight: '900', color: '#fef3c7' }}>VIEW →</span>
-            </span>
-          </button>
+      {homeOffers.length > 0 && (
+        <div style={{ display: 'grid', gap: '10px', padding: '14px 16px 0' }}>
+          {homeOffers.map(offer => {
+            const offerTimeLeft = Math.max(0, new Date(offer.endAt).getTime() - currentTime);
+            const label = `${offer.title || ''} ${offer.tier || ''}`.toLowerCase();
+            const tab = label.includes('vip') ? 'vip' : 'limited';
+            return (
+              <button
+                key={offer.id}
+                type="button"
+                onClick={() => window.location.assign(`/plans?tab=${tab}`)}
+                style={{ width: '100%', borderRadius: '22px', background: 'linear-gradient(135deg, #0b1a50 0%, #1d4ed8 40%, #0ea5e9 100%)', border: '1px solid rgba(125,211,252,0.5)', padding: '14px 16px', color: '#ffffff', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', boxShadow: '0 16px 32px rgba(14,165,233,0.25), inset 0 1px 0 rgba(255,255,255,0.22)', cursor: 'pointer', transform: 'translateY(0)', animation: 'cloudnovaNoticeIn 280ms ease-out, pulseOffer 2.2s ease-in-out infinite' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left', minWidth: 0 }}>
+                  <span style={{ width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: 'linear-gradient(135deg, #fbbf24, #f97316)', color: '#fff', fontSize: '16px', boxShadow: '0 8px 20px rgba(249,115,22,0.35)' }}>⚡</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', color: '#dbeafe', fontSize: '9px', letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.9 }}>{tab === 'vip' ? 'VIP Cloud Offer' : 'Limited Time Offer'}</span>
+                    <span style={{ display: 'block', fontSize: '15px', fontWeight: '900', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{offer.title || 'Machine Offer'} is live</span>
+                  </span>
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', minWidth: '108px', padding: '8px 10px', fontWeight: '900', fontSize: '11px', letterSpacing: '0.06em', color: '#fef3c7' }}>{formatOfferCountdown(offerTimeLeft)}</span>
+                  <span style={{ fontSize: '12px', fontWeight: '900', color: '#fef3c7' }}>VIEW →</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -308,7 +266,7 @@ export default function Home() {
             <h2 style={{ margin: '4px 0 0', fontSize: '16px', fontWeight: '900' }}>Cloud Video</h2>
           </div>
           <div className="cloudnova-video-frame" style={{ position: 'relative' }}>
-            <video src="/cloudvideo.mp4" loop controls playsInline preload="metadata" style={{ display: 'block', width: '100%', height: 'clamp(190px, 42vw, 360px)', objectFit: 'cover', backgroundColor: '#020617' }} />
+            <video src="/cloudvideo.mp4" loop controls playsInline preload="none" style={{ display: 'block', width: '100%', height: 'clamp(190px, 42vw, 360px)', objectFit: 'cover', backgroundColor: '#020617' }} />
           </div>
         </div>
       </section>

@@ -72,22 +72,40 @@ app.use('/api', apiLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/admin', adminLimiter);
 
+let cachedBtcPrice = null;
+let cachedBtcPriceAt = 0;
+const BTC_CACHE_MS = 60 * 1000;
+
 app.get('/api/market/btc', async (req, res) => {
+  if (cachedBtcPrice !== null && Date.now() - cachedBtcPriceAt < BTC_CACHE_MS) {
+    return res.status(200).json({ price: cachedBtcPrice, cached: true });
+  }
   try {
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', { signal: AbortSignal.timeout(5000) });
     if (!response.ok) return res.status(502).json({ message: 'Market price unavailable.' });
     const data = await response.json();
     const price = Number(data?.bitcoin?.usd);
     if (!Number.isFinite(price)) return res.status(502).json({ message: 'Market price unavailable.' });
-    return res.status(200).json({ price });
+    cachedBtcPrice = price;
+    cachedBtcPriceAt = Date.now();
+    return res.status(200).json({ price, cached: false });
   } catch {
+    if (cachedBtcPrice !== null) return res.status(200).json({ price: cachedBtcPrice, cached: true });
     return res.status(502).json({ message: 'Market price unavailable.' });
   }
 });
 
 // Serve pre-built React frontend
 const FRONTEND_BUILD = path.join(__dirname, '..', 'FrontEnd', 'build');
-app.use(express.static(FRONTEND_BUILD));
+app.use(express.static(FRONTEND_BUILD, {
+  setHeaders: (response, filePath) => {
+    if (filePath.includes(`${path.sep}static${path.sep}`)) {
+      response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (path.basename(filePath) === 'index.html') {
+      response.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
