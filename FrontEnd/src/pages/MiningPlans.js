@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import MachineCard from '../Components/MachineCard';
 
 const getTier = (price) => {
@@ -17,37 +17,51 @@ const getTier = (price) => {
 
 const MiningPlans = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('plans');
+  const location = useLocation();
+  const queryTab = new URLSearchParams(location.search).get('tab');
+  const [activeTab, setActiveTab] = useState(queryTab === 'vip' || queryTab === 'limited' ? queryTab : 'plans');
   const [selectedCountry, setSelectedCountry] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
   const [rentingId, setRentingId] = useState(null);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState('');
+  const [liveOffers, setLiveOffers] = useState([]);
+  const [offerTimers, setOfferTimers] = useState({});
   const limitedSaleDuration = 72 * 60 * 60 * 1000;
-  const initialSaleDeadline = (() => {
-    const savedDeadline = Number(localStorage.getItem('cloudnovaLimitedSaleDeadline'));
-    return Number.isFinite(savedDeadline) && savedDeadline > Date.now() ? savedDeadline : Date.now() + limitedSaleDuration;
-  })();
-  const [saleDeadline] = useState(initialSaleDeadline);
-  const [saleTimeLeft, setSaleTimeLeft] = useState(() => {
-    return Math.max(0, initialSaleDeadline - Date.now());
-  });
 
   useEffect(() => {
-    let deadline = saleDeadline;
-    localStorage.setItem('cloudnovaLimitedSaleDeadline', String(deadline));
-    const interval = setInterval(() => {
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        deadline = Date.now() + limitedSaleDuration;
-        localStorage.setItem('cloudnovaLimitedSaleDeadline', String(deadline));
-        setSaleTimeLeft(limitedSaleDuration);
-      } else {
-        setSaleTimeLeft(remaining);
-      }
-    }, 1000);
+    fetch('/api/public/machine-offers')
+      .then(async (response) => {
+        if (!response.ok) return setLiveOffers([]);
+        const data = await response.json();
+        setLiveOffers(Array.isArray(data.offers) ? data.offers : []);
+      })
+      .catch(() => setLiveOffers([]));
+  }, []);
+
+  useEffect(() => {
+    if (!liveOffers.length) return undefined;
+    const tick = () => {
+      const nextTimers = {};
+      liveOffers.forEach(offer => {
+        const endTime = new Date(offer.endAt || Date.now() + limitedSaleDuration).getTime();
+        nextTimers[offer.id] = Math.max(0, endTime - Date.now());
+      });
+      setOfferTimers(nextTimers);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [limitedSaleDuration, saleDeadline]);
+  }, [liveOffers, limitedSaleDuration]);
+
+  const formatOfferCountdown = (milliseconds) => {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+  };
 
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState(null); // { machine }
@@ -66,18 +80,75 @@ const MiningPlans = () => {
     { id: 9, name: 'CloudNova Elite', dailyIncome: 9.09, termDays: 88, rebate: 0.00, totalIncome: 800.00, limit: 5, price: 500.00, country: 'Global', category: 'limited' }
   ];
 
-  const filteredMachines = plans.filter(machine => {
-    const matchesCategory = machine.category === activeTab;
-    const matchesCountry = activeTab === 'limited' || selectedCountry === 'All' || machine.country === selectedCountry;
-    const matchesSearch = machine.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesCountry && matchesSearch;
-  });
+  const categorizeOffer = (offer) => {
+    const label = `${offer.title || ''} ${offer.tier || ''}`.toLowerCase();
+    return label.includes('vip') || label.includes('cloud vip') ? 'vip' : 'limited';
+  };
+
+  const liveMachineOffers = liveOffers.map(offer => ({
+    id: `offer-${offer.id}`,
+    name: offer.title || `${offer.tier || 'Machine'} Limited Offer`,
+    dailyIncome: Number(offer.dailyIncome || 0),
+    termDays: Number(offer.durationDays || 0),
+    rebate: 0,
+    totalIncome: Number((Number(offer.dailyIncome || 0) * Number(offer.durationDays || 0)).toFixed(2)),
+    limit: Number(offer.remainingStock ?? offer.stock ?? 1),
+    price: Number(offer.price || 0),
+    country: 'Global',
+    category: categorizeOffer(offer),
+    isOffer: true,
+    offerId: offer.id,
+    tier: offer.tier,
+    remainingStock: Number(offer.remainingStock ?? offer.stock ?? 0),
+    startAt: offer.startAt,
+    endAt: offer.endAt,
+    isCurrentlyActive: Boolean(offer.isCurrentlyActive ?? true)
+  }));
+
+  const normalLimitedOffers = liveMachineOffers.filter(offer => offer.category === 'limited' && offer.isCurrentlyActive !== false);
+  const vipOffers = liveMachineOffers.filter(offer => offer.category === 'vip' && offer.isCurrentlyActive !== false);
+  const baseTabs = [
+    { key: 'plans', label: 'Mining Plans', count: plans.length },
+    { key: 'limited', label: 'Limited Offers', count: normalLimitedOffers.length }
+  ];
+  const availableTabs = vipOffers.length > 0
+    ? [...baseTabs, { key: 'vip', label: 'VIP Cloud Offers', count: vipOffers.length }]
+    : baseTabs;
+
+  useEffect(() => {
+    const requestedTab = queryTab === 'vip' || queryTab === 'limited' ? queryTab : 'plans';
+    if (requestedTab === 'vip' && vipOffers.length === 0) {
+      setActiveTab(availableTabs[0]?.key || 'plans');
+      return;
+    }
+    if (requestedTab === 'limited' && normalLimitedOffers.length === 0) {
+      setActiveTab(availableTabs[0]?.key || 'plans');
+      return;
+    }
+    if (!availableTabs.some(tab => tab.key === activeTab) || (requestedTab !== 'plans' && !availableTabs.some(tab => tab.key === requestedTab))) {
+      setActiveTab(availableTabs[0]?.key || 'plans');
+      return;
+    }
+    if (requestedTab !== 'plans' && requestedTab !== activeTab) {
+      setActiveTab(requestedTab);
+    }
+  }, [availableTabs, activeTab, normalLimitedOffers.length, queryTab, vipOffers.length]);
+
+  const machineCatalog = [...plans, ...liveMachineOffers];
+
+  const filteredMachines = machineCatalog
+    .filter(machine => {
+      const matchesCategory = machine.category === activeTab;
+      const matchesCountry = activeTab === 'limited' || activeTab === 'vip' || selectedCountry === 'All' || machine.country === selectedCountry;
+      return matchesCategory && matchesCountry;
+    })
+    .sort((a, b) => Number(Boolean(b.isOffer)) - Number(Boolean(a.isOffer)) || Number(b.price) - Number(a.price));
 
   const handleRent = (machine) => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
 
-    const tier = getTier(machine.price);
+    const tier = machine.tier || getTier(machine.price);
     if (!tier) {
       setContactModal({ machine });
       return;
@@ -88,14 +159,17 @@ const MiningPlans = () => {
 
   const executeRent = async (machine) => {
     const token = localStorage.getItem('token');
-    const tier = getTier(machine.price);
+    const tier = machine.tier || getTier(machine.price);
     setConfirmModal(null);
     setRentingId(machine.id); setMsg('');
     try {
       const res = await fetch('/api/plans/lease', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', authorization: token },
-        body: JSON.stringify({ tier })
+        body: JSON.stringify({
+          tier,
+          ...(machine.offerId ? { offerId: machine.offerId } : {})
+        })
       });
       const data = await res.json();
       if (res.ok) {
@@ -225,16 +299,20 @@ const MiningPlans = () => {
         )}
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl p-1 flex gap-1 shadow-[0_8px_22px_rgba(15,23,42,0.08)] border border-slate-200/80 text-xs font-bold">
-          <button type="button" onClick={() => { setActiveTab('plans'); setSelectedCountry('All'); }}
-            className={`w-full text-center py-2.5 rounded-lg transition-all ${activeTab === 'plans' ? 'bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]' : 'text-slate-500'}`}>
-            ⚡ Mining Plans
-          </button>
-          <button type="button" onClick={() => { setActiveTab('limited'); setSelectedCountry('All'); }}
-            className={`w-full text-center py-2.5 rounded-lg transition-all ${activeTab === 'limited' ? 'bg-gradient-to-r from-[#f59e0b] to-[#ea580c] text-white shadow-[0_4px_12px_rgba(245,158,11,0.3)]' : 'text-slate-500'}`}>
-            🔥 Limited Offers
-          </button>
-        </div>
+        {availableTabs.length > 0 && (
+          <div className="bg-white rounded-xl p-1 flex gap-1 shadow-[0_8px_22px_rgba(15,23,42,0.08)] border border-slate-200/80 text-xs font-bold">
+            {availableTabs.map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => { setActiveTab(tab.key); setSelectedCountry('All'); }}
+                className={`w-full text-center py-2.5 rounded-lg transition-all ${activeTab === tab.key ? (tab.key === 'plans' ? 'bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]' : tab.key === 'limited' ? 'bg-gradient-to-r from-[#f59e0b] to-[#ea580c] text-white shadow-[0_4px_12px_rgba(245,158,11,0.3)]' : 'bg-gradient-to-r from-[#22c55e] to-[#0ea5e9] text-white shadow-[0_4px_12px_rgba(34,197,94,0.3)]') : 'text-slate-500'}`}
+              >
+                {tab.key === 'plans' ? '⚡' : tab.key === 'limited' ? '🔥' : '👑'} {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Country Filters */}
         {activeTab === 'plans' && (
@@ -247,28 +325,6 @@ const MiningPlans = () => {
             ))}
           </div>
         )}
-
-        {activeTab === 'limited' && (
-          <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 via-orange-50 to-rose-50 px-4 py-3 shadow-[0_8px_20px_rgba(245,158,11,0.14)]">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Premium machine sale</p>
-                <p className="text-xs font-bold text-slate-700 mt-1">Limited pricing is live while the timer runs</p>
-              </div>
-              <div className="shrink-0 rounded-xl border border-cyan-200/30 bg-gradient-to-br from-[#0b1a50] via-[#2563eb] to-[#087f9b] px-3 py-2 text-center text-white shadow-[0_8px_18px_rgba(37,99,235,0.28)]">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-cyan-200">Sale ends in</p>
-                <p className="text-sm font-black tabular-nums">{String(Math.floor(saleTimeLeft / 86400000)).padStart(2, '0')}d {String(Math.floor((saleTimeLeft % 86400000) / 3600000)).padStart(2, '0')}h {String(Math.floor((saleTimeLeft % 3600000) / 60000)).padStart(2, '0')}m {String(Math.floor((saleTimeLeft % 60000) / 1000)).padStart(2, '0')}s</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Search */}
-        <div className="bg-white rounded-xl px-3 py-1 flex items-center shadow-[0_5px_16px_rgba(15,23,42,0.06)] border border-slate-200/80">
-          <input type="text" placeholder="Search machine..." value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent text-xs text-slate-700 focus:outline-none py-1.5" />
-        </div>
 
         {/* Plan Cards */}
         <div className="space-y-3 pt-1">

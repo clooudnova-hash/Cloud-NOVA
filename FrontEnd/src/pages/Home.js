@@ -9,6 +9,29 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [showWinners, setShowWinners] = useState(false);
   const [weeklyWinner, setWeeklyWinner] = useState(null);
+  const [homeOffer, setHomeOffer] = useState(null);
+  const [offerCountdown, setOfferCountdown] = useState(0);
+
+  useEffect(() => {
+    if (!homeOffer?.endAt) {
+      setOfferCountdown(0);
+      return undefined;
+    }
+    const deadline = new Date(homeOffer.endAt).getTime();
+    const tick = () => setOfferCountdown(Math.max(0, deadline - Date.now()));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [homeOffer]);
+
+  const formatOfferCountdown = milliseconds => {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+  };
 
   const formatDuration = milliseconds => {
     const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
@@ -75,6 +98,28 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const headers = token ? { authorization: token } : {};
+
+    fetch('/api/public/machine-offers', { headers })
+      .then(async response => {
+        if (!response.ok) {
+          setHomeOffer(null);
+          return;
+        }
+        const data = await response.json();
+        const offers = Array.isArray(data.offers) ? data.offers : [];
+        const vipOffer = offers.find(offer => {
+          const label = `${offer.title || ''} ${offer.tier || ''}`.toLowerCase();
+          return label.includes('vip') || label.includes('cloud vip');
+        });
+        const fallbackOffer = offers[0] || null;
+        setHomeOffer(vipOffer || fallbackOffer || null);
+      })
+      .catch(() => setHomeOffer(null));
+  }, []);
+
   const userName = dashboard?.fullName || localStorage.getItem('userName') || 'Member';
   const balance = dashboard ? `$${parseFloat(dashboard.balance).toFixed(2)}` : '$0.00';
   const minersCount = dashboard?.minersCount ?? 0;
@@ -82,9 +127,11 @@ export default function Home() {
   const activeContracts = (dashboard?.miningContracts || []).filter(contract => contract.status === 'active');
   const incomeNodes = activeContracts.length ? activeContracts : [{ id: 'preview-node', lastCollectedAt: new Date().toISOString(), preview: true }];
   const winnerTimeLeft = weeklyWinner ? Math.max(0, new Date(weeklyWinner.expiresAt).getTime() - currentTime) : 0;
-  const winnerHours = Math.floor(winnerTimeLeft / 3600000);
   const winnerMinutes = Math.floor((winnerTimeLeft % 3600000) / 60000);
   const winnerSeconds = Math.floor((winnerTimeLeft % 60000) / 1000);
+  const winnerDays = Math.floor(winnerTimeLeft / 86400000);
+  const winnerDisplayHours = Math.floor((winnerTimeLeft % 86400000) / 3600000);
+  const winnerCountdown = `${String(winnerDays).padStart(2, '0')}d ${String(winnerDisplayHours).padStart(2, '0')}h ${String(winnerMinutes).padStart(2, '0')}m ${String(winnerSeconds).padStart(2, '0')}s`;
   const winnerIsActive = Boolean(weeklyWinner?.active && winnerTimeLeft > 0);
 
   const miningPools = activeContracts.map((contract, index) => ({
@@ -95,6 +142,19 @@ export default function Home() {
     duration: `${contract.durationDays || 0} Days`,
     img: ['⚡', '💎', '🔷'][index % 3]
   }));
+
+  useEffect(() => {
+    if (!homeOffer?.endAt) {
+      setOfferCountdown(0);
+      return undefined;
+    }
+
+    const deadline = new Date(homeOffer.endAt).getTime();
+    const tick = () => setOfferCountdown(Math.max(0, deadline - Date.now()));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [homeOffer]);
 
   return (
     <div className="premium-page" style={{ backgroundColor: '#f8fafc', minHeight: '100vh', paddingBottom: '40px', fontFamily: 'sans-serif' }}>
@@ -168,6 +228,47 @@ export default function Home() {
         <p style={{ textAlign: 'center', fontSize: '11px', color: '#94a3b8', marginTop: '10px', marginBottom: 0 }}>Please get your income every day, or it will disappear after 24 hours.</p>
       </div>
 
+      {homeOffer && (
+        <div style={{ padding: '14px 16px 0' }}>
+          <button
+            type="button"
+            onClick={() => window.location.assign('/plans?tab=' + (homeOffer.title?.toLowerCase().includes('vip') || homeOffer.tier?.toLowerCase().includes('vip') ? 'vip' : 'limited'))}
+            style={{
+              width: '100%',
+              borderRadius: '22px',
+              background: 'linear-gradient(135deg, #0b1a50 0%, #1d4ed8 40%, #0ea5e9 100%)',
+              border: '1px solid rgba(125,211,252,0.5)',
+              padding: '14px 16px',
+              color: '#ffffff',
+              fontWeight: '800',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              boxShadow: '0 16px 32px rgba(14,165,233,0.25), inset 0 1px 0 rgba(255,255,255,0.22)',
+              cursor: 'pointer',
+              transform: 'translateY(0)',
+              animation: 'cloudnovaNoticeIn 280ms ease-out, pulseOffer 2.2s ease-in-out infinite',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left' }}>
+              <span style={{ width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: 'linear-gradient(135deg, #fbbf24, #f97316)', color: '#fff', fontSize: '16px', boxShadow: '0 8px 20px rgba(249,115,22,0.35)' }}>⚡</span>
+              <span>
+                <span style={{ display: 'block', color: '#dbeafe', fontSize: '9px', letterSpacing: '0.16em', textTransform: 'uppercase', opacity: 0.9 }}>Limited Time Offer</span>
+                <span style={{ display: 'block', fontSize: '15px', fontWeight: '900', marginTop: '2px' }}>{homeOffer.title || 'VIP Machine Offer'} is live</span>
+              </span>
+            </span>
+
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', minWidth: '108px', padding: '8px 10px', fontWeight: '900', fontSize: '11px', letterSpacing: '0.06em', color: '#fef3c7' }}>
+                {formatOfferCountdown(offerCountdown)}
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: '900', color: '#fef3c7' }}>VIEW →</span>
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* TICKER */}
       <div style={{ backgroundColor: '#ffffff', color: '#334155', padding: '10px 0', fontSize: '12px', borderBottom: '1px solid #e2e8f0', overflow: 'hidden' }}>
         <div style={{ whiteSpace: 'nowrap', animation: 'cloudnovaTicker 18s linear infinite' }}>
@@ -179,7 +280,7 @@ export default function Home() {
         <button type="button" onClick={() => setShowWinners(true)} aria-label="Open weekly winners" className="weekly-winner-line">
           <span className="weekly-winner-icon"><Trophy size={17} strokeWidth={2.4} /></span>
           <span className="weekly-winner-copy"><strong>Weekly Highlights</strong><span>Best Depositor: {weeklyWinner.depositorName} · Best Withdrawal: {weeklyWinner.withdrawalName}</span></span>
-          <span className="weekly-winner-countdown">{String(winnerHours).padStart(2, '0')}:{String(winnerMinutes).padStart(2, '0')}:{String(winnerSeconds).padStart(2, '0')}</span>
+          <span className="weekly-winner-countdown"><span className="weekly-winner-live-dot" />{winnerCountdown}</span>
           <ChevronRight className="weekly-winner-arrow" size={19} strokeWidth={2.5} />
         </button>
       )}
@@ -194,7 +295,7 @@ export default function Home() {
               <div className="weekly-winner-row winner-rank-1"><span className="winner-rank">🏆</span><span className="winner-name">Best Depositor · {weeklyWinner.depositorName}</span><strong>${Number(weeklyWinner.depositorAmount).toFixed(2)}</strong></div>
               <div className="weekly-winner-row winner-rank-2"><span className="winner-rank">💸</span><span className="winner-name">Best Withdrawal · {weeklyWinner.withdrawalName}</span><strong>${Number(weeklyWinner.withdrawalAmount).toFixed(2)}</strong></div>
             </div>
-            <p className="weekly-winner-expiry">Next update in {String(winnerHours).padStart(2, '0')}:{String(winnerMinutes).padStart(2, '0')}:{String(winnerSeconds).padStart(2, '0')}</p>
+            <p className="weekly-winner-expiry">Next update in {winnerCountdown}</p>
           </div>
         </div>
       )}
@@ -274,13 +375,15 @@ export default function Home() {
         @keyframes incomeCoinFloat { 0%, 100% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-9px) rotate(8deg); } }
         @keyframes cloudnovaCoreCoin { 0%, 100% { transform: translate(-50%, -50%) rotateY(0deg) scale(1); } 50% { transform: translate(-50%, -50%) rotateY(180deg) scale(1.08); } }
         @keyframes fluidGraphPulse { 0% { transform: scaleY(0.9) translateY(4px); opacity: 0.85; } 100% { transform: scaleY(1.05) translateY(-2px); opacity: 1; } }
-        .weekly-winner-line { width: 100%; display: flex; align-items: center; gap: 11px; padding: 12px 40px; border: 0; border-bottom: 1px solid rgba(37,99,235,0.16); background: linear-gradient(90deg, #ffffff 0%, #eff6ff 48%, #ffffff 100%); color: #0f172a; text-align: left; cursor: pointer; animation: weeklyWinnerReveal 500ms ease-out both; }
-        .weekly-winner-icon { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; border-radius: 10px; color: #b45309; background: linear-gradient(135deg, #fef3c7, #fbbf24); box-shadow: 0 5px 14px rgba(245,158,11,0.24); }
+        .weekly-winner-line { width: 100%; display: flex; align-items: center; gap: 12px; padding: 13px 40px; border: 0; border-top: 1px solid rgba(125,211,252,0.18); border-bottom: 1px solid rgba(251,191,36,0.24); background: linear-gradient(100deg, #07142f 0%, #102d68 48%, #0b1a50 100%); color: #f8fafc; text-align: left; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 20px rgba(7,20,47,0.16); animation: weeklyWinnerReveal 500ms ease-out both; }
+        .weekly-winner-line:hover { background: linear-gradient(100deg, #0a1c3e 0%, #163b83 48%, #10255f 100%); }
+        .weekly-winner-icon { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border: 1px solid rgba(253,230,138,0.58); border-radius: 11px; color: #fff7cc; background: linear-gradient(145deg, #f59e0b, #b45309); box-shadow: 0 0 0 4px rgba(251,191,36,0.1), 0 7px 16px rgba(245,158,11,0.28); }
         .weekly-winner-copy { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 9px; overflow: hidden; }
-        .weekly-winner-copy strong { color: #1e3a8a; font-size: 12px; white-space: nowrap; }
-        .weekly-winner-copy span { color: #64748b; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .weekly-winner-countdown { color: #2563eb; font-size: 11px; font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .weekly-winner-arrow { flex: 0 0 auto; color: #2563eb; }
+        .weekly-winner-copy strong { color: #fef3c7; font-size: 12px; letter-spacing: 0.02em; white-space: nowrap; }
+        .weekly-winner-copy span { color: #bfdbfe; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .weekly-winner-countdown { display: inline-flex; align-items: center; gap: 6px; color: #fef3c7; font-size: 11px; font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; padding: 6px 9px; border: 1px solid rgba(253,230,138,0.25); border-radius: 8px; background: rgba(251,191,36,0.1); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); animation: weeklyWinnerTimerPulse 2.4s ease-in-out infinite; }
+        .weekly-winner-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #86efac; box-shadow: 0 0 0 3px rgba(134,239,172,0.12), 0 0 9px rgba(134,239,172,0.75); animation: weeklyWinnerDotPulse 1.6s ease-in-out infinite; }
+        .weekly-winner-arrow { flex: 0 0 auto; color: #7dd3fc; }
         .weekly-winner-overlay { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 20px; background: rgba(2,6,23,0.68); backdrop-filter: blur(7px); animation: weeklyWinnerFade 180ms ease-out both; }
         .weekly-winner-panel { width: min(100%, 390px); padding: 24px; position: relative; border: 1px solid rgba(96,165,250,0.35); border-radius: 20px; color: #fff; background: linear-gradient(155deg, #0b1a50, #102b75 62%, #07112f); box-shadow: 0 25px 70px rgba(0,0,0,0.45); animation: weeklyWinnerPanelIn 260ms cubic-bezier(.2,.8,.2,1) both; }
         .weekly-winner-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,0.16); border-radius: 50%; background: rgba(255,255,255,0.08); color: #fff; cursor: pointer; }
@@ -295,6 +398,8 @@ export default function Home() {
         .winner-rank { width: 34px; color: #fbbf24; font-size: 11px; font-weight: 900; }.winner-name { flex: 1; font-size: 13px; font-weight: 700; }.weekly-winner-row strong { color: #86efac; font-size: 14px; }
         .weekly-winner-expiry { margin: 18px 0 0; color: #93c5fd; font-size: 11px; text-align: center; }
         @keyframes weeklyWinnerReveal { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes weeklyWinnerTimerPulse { 0%, 100% { border-color: rgba(253,230,138,0.25); } 50% { border-color: rgba(253,230,138,0.58); } }
+        @keyframes weeklyWinnerDotPulse { 0%, 100% { opacity: 0.65; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.12); } }
         @keyframes weeklyWinnerFade { from { opacity: 0; } to { opacity: 1; } }
         @keyframes weeklyWinnerPanelIn { from { opacity: 0; transform: translateY(15px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes weeklyWinnerRowIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }

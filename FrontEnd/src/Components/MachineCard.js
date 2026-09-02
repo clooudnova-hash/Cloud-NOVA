@@ -1,61 +1,47 @@
 import React, { useEffect, useState } from 'react';
 
-const SALE_DURATION = 72 * 60 * 60 * 1000;
-
 const MachineCard = ({ data, onRent, renting }) => {
-  const { id, name, dailyIncome, termDays, rebate, totalIncome, limit, price, image } = data || {};
+  const { id, name, dailyIncome, termDays, rebate, totalIncome, limit, price, image, isOffer, tier, endAt } = data || {};
   const isPremium = price >= 80;
-  const isSaleMachine = [10, 20, 30, 50].includes(price);
-  const saleStorageKey = `cloudnovaMachineSaleDeadline-${id}`;
-  const [saleTimeLeft, setSaleTimeLeft] = useState(() => {
-    if (!isSaleMachine) return 0;
-    const savedDeadline = Number(localStorage.getItem(saleStorageKey));
-    const deadline = Number.isFinite(savedDeadline) && savedDeadline > Date.now() ? savedDeadline : Date.now() + SALE_DURATION;
-    return Math.max(0, deadline - Date.now());
-  });
+  const defaultImageIndex = (() => {
+    const tiers = ['Starter', 'Pro', 'Basic', 'Standard', 'Premium', 'Advanced', 'Professional', 'Enterprise', 'Elite'];
+    const tierIndex = tiers.indexOf(tier || 'Starter');
+    const fallbackIndex = Number.isInteger(tierIndex) && tierIndex >= 0 ? tierIndex : Number(id) || 0;
+    return ((fallbackIndex % 3) + 1);
+  })();
+  const [offerTimeLeft, setOfferTimeLeft] = useState(0);
 
   useEffect(() => {
-    if (!isSaleMachine) return undefined;
-    const getSaleDeadline = () => {
-      const savedDeadline = Number(localStorage.getItem(saleStorageKey));
-      return Number.isFinite(savedDeadline) && savedDeadline > Date.now() ? savedDeadline : Date.now() + SALE_DURATION;
-    };
-    let deadline = getSaleDeadline();
-    localStorage.setItem(saleStorageKey, String(deadline));
-    const interval = setInterval(() => {
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) {
-        deadline = Date.now() + SALE_DURATION;
-        localStorage.setItem(saleStorageKey, String(deadline));
-        setSaleTimeLeft(SALE_DURATION);
-      } else {
-        setSaleTimeLeft(remaining);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isSaleMachine, saleStorageKey]);
+    if (!isOffer || !endAt) {
+      setOfferTimeLeft(0);
+      return undefined;
+    }
 
-  const formatSaleTime = milliseconds => {
+    const deadline = new Date(endAt).getTime();
+    const tick = () => setOfferTimeLeft(Math.max(0, deadline - Date.now()));
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [isOffer, endAt]);
+
+  const formatOfferTime = milliseconds => {
     const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
-    const hours = Math.floor(totalSeconds / 3600);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    return `${String(days).padStart(2, '0')}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
   };
 
   // Cycle through miner images if no specific image provided
-  const imgSrc = image || `/miner${((id - 1) % 3) + 1}.jpg`;
+  const imgSrc = image || `/miner${defaultImageIndex}.jpg`;
 
   return (
     <div className={`group relative rounded-2xl p-4 flex justify-between gap-3 border-l-4 shadow-[0_8px_24px_rgba(15,23,42,0.07)] transition duration-200 hover:-translate-y-0.5 ${isPremium ? 'bg-gradient-to-br from-[#fffdf5] via-[#fff8df] to-[#ffedb0] border-amber-400 border-l-orange-500 shadow-[0_8px_28px_rgba(245,158,11,0.2)] hover:shadow-[0_12px_32px_rgba(245,158,11,0.28)]' : 'bg-gradient-to-r from-white via-white to-[#edf6ff] border-blue-200 border-l-[#2563eb] hover:border-cyan-300 hover:border-l-cyan-500 hover:shadow-[0_10px_28px_rgba(37,99,235,0.16)]'}`}>
-      {isSaleMachine && (
-        <div className="absolute -top-3 left-4 z-10 rounded-md border-2 border-white bg-gradient-to-r from-[#0b1a50] via-[#2563eb] to-[#00a6c7] px-2.5 py-1 text-[8px] font-black tracking-[0.12em] text-white shadow-[0_4px_12px_rgba(37,99,235,0.3)]">
-          RECOMMEND / HOT SALE
-        </div>
-      )}
-      {isPremium && (
-        <div className={`absolute -top-3 right-4 text-white text-[9px] font-black tracking-[0.16em] px-3 py-1 rounded-full shadow-md border-2 border-white ${isPremium ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-blue-600 to-cyan-500'}`}>
-          PREMIUM
+      {isOffer && (
+        <div className="absolute -top-3 left-4 z-10 rounded-md border-2 border-white bg-gradient-to-r from-[#f59e0b] via-[#f97316] to-[#ef4444] px-2.5 py-1 text-[8px] font-black tracking-[0.12em] text-white shadow-[0_4px_12px_rgba(245,158,11,0.35)]">
+          LIMITED TIME OFFER
         </div>
       )}
 
@@ -88,10 +74,11 @@ const MachineCard = ({ data, onRent, renting }) => {
           </div>
           <div className="pt-2">
             <span className={`text-[13px] font-black ${isPremium ? 'text-amber-700' : 'text-slate-800'}`}>${price ? price.toFixed(2) : '0.00'}</span>
-            {isSaleMachine && (
-              <p className="mt-1 text-[8px] font-black uppercase tracking-wider text-[#1d4ed8]">
-                Sale ends in {formatSaleTime(saleTimeLeft)}
-              </p>
+            {isOffer && endAt && (
+              <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-rose-200 bg-gradient-to-r from-rose-500 to-orange-500 px-2 py-1 shadow-[0_6px_18px_rgba(244,63,94,0.25)]">
+                <span className="text-[7px] font-black uppercase tracking-[0.18em] text-white">Ends</span>
+                <span className="text-[8px] font-black text-white tabular-nums">{formatOfferTime(offerTimeLeft)}</span>
+              </div>
             )}
           </div>
         </div>

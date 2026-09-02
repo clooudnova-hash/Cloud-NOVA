@@ -27,6 +27,7 @@ const btn = (color = '#00b4ff') => ({
 });
 
 const statusColor = { pending: '#f59e0b', completed: '#10b981', rejected: '#ef4444' };
+const MACHINE_TIER_OPTIONS = ['Starter', 'Pro', 'Basic', 'Standard', 'Premium', 'Advanced', 'Professional', 'Enterprise', 'Elite', 'VIP Cloud'];
 
 const getPreviewTeamUsers = users => {
   if (new URLSearchParams(window.location.search).get('preview') !== 'team' || !users.length) return users;
@@ -66,6 +67,19 @@ export default function Admin() {
   const [weeklyWinner, setWeeklyWinner] = useState({ active: false, depositorName: '', depositorAmount: '', withdrawalName: '', withdrawalAmount: '', expiresAt: '' });
   const [depositSettings, setDepositSettings] = useState({ autoApproveDeposits: true, manualApproval: false });
   const [timeAccess, setTimeAccess] = useState({});
+  const [machineOffers, setMachineOffers] = useState([]);
+  const [machineOfferForm, setMachineOfferForm] = useState({
+    title: '',
+    tier: 'Starter',
+    price: '',
+    dailyIncome: '',
+    durationDays: '',
+    hashrate: '',
+    stock: '',
+    startAt: '',
+    endAt: '',
+    isActive: true,
+  });
 
   const userRole = localStorage.getItem('userRole') || '';
   const teamUsers = getPreviewTeamUsers(users);
@@ -77,22 +91,17 @@ export default function Admin() {
   }, []); // eslint-disable-line
 
   const loadAll = useCallback(async () => {
-    const [m, tx, u, b, tc, winner, deposits] = await Promise.all([
-      api('/api/admin/metrics'),
-      api('/api/admin/transactions'),
-      api('/api/admin/users'),
-      api('/api/admin/bonus'),
-      api('/api/admin/task-claims'),
-      api('/api/admin/weekly-winner'),
-      api('/api/admin/deposit-settings'),
-    ]);
-    setMetrics(m);
-    setTransactions(Array.isArray(tx) ? tx.reverse() : []);
-    setUsers(Array.isArray(u) ? u : []);
-    setBonusCodes(Array.isArray(b) ? b : []);
-    setTaskClaims(Array.isArray(tc) ? tc : []);
-    if (winner) setWeeklyWinner(winner);
-    if (deposits && typeof deposits.autoApproveDeposits === 'boolean') setDepositSettings(deposits);
+    const requests = [
+      api('/api/admin/metrics').then(setMetrics),
+      api('/api/admin/transactions').then(tx => setTransactions(Array.isArray(tx) ? tx.reverse() : [])),
+      api('/api/admin/users').then(u => setUsers(Array.isArray(u) ? u : [])),
+      api('/api/admin/bonus').then(b => setBonusCodes(Array.isArray(b) ? b : [])),
+      api('/api/admin/task-claims').then(tc => setTaskClaims(Array.isArray(tc) ? tc : [])),
+      api('/api/admin/weekly-winner').then(winner => { if (winner) setWeeklyWinner(winner); }),
+      api('/api/admin/deposit-settings').then(deposits => { if (deposits && typeof deposits.autoApproveDeposits === 'boolean') setDepositSettings(deposits); }),
+      api('/api/admin/machine-offers').then(offers => setMachineOffers(Array.isArray(offers) ? offers : [])),
+    ];
+    await Promise.allSettled(requests);
   }, []);
 
   const txAction = async (id, action) => {
@@ -277,7 +286,56 @@ export default function Admin() {
     setTimeout(() => setMsg(''), 3000);
   };
 
-  const tabs = ['dashboard', 'transactions', 'users', 'teams', 'bonus', 'winner'];
+  const createMachineOffer = async () => {
+    if (!machineOfferForm.title || !machineOfferForm.tier || !machineOfferForm.price || !machineOfferForm.dailyIncome || !machineOfferForm.durationDays || !machineOfferForm.hashrate || !machineOfferForm.stock) {
+      setMsg('All machine offer fields are required.');
+      setTimeout(() => setMsg(''), 3000);
+      return;
+    }
+
+    setLoading(true);
+    const res = await api('/api/admin/machine-offers', {
+      method: 'POST',
+      body: {
+        ...machineOfferForm,
+        price: Number(machineOfferForm.price),
+        dailyIncome: Number(machineOfferForm.dailyIncome),
+        durationDays: Number(machineOfferForm.durationDays),
+        hashrate: Number(machineOfferForm.hashrate),
+        stock: Number(machineOfferForm.stock),
+      }
+    });
+    setMsg(res.message || res.error);
+    if (res.success) {
+      setMachineOfferForm({
+        title: '',
+        tier: 'Starter',
+        price: '',
+        dailyIncome: '',
+        durationDays: '',
+        hashrate: '',
+        stock: '',
+        startAt: '',
+        endAt: '',
+        isActive: true,
+      });
+      await loadAll();
+    }
+    setLoading(false);
+    setTimeout(() => setMsg(''), 4000);
+  };
+
+  const removeMachineOffer = async (offerId) => {
+    if (!window.confirm('Remove this limited offer?')) return;
+    setLoading(true);
+    const res = await api(`/api/admin/machine-offers/${offerId}`, { method: 'DELETE' });
+    setMsg(res.message || res.error);
+    await loadAll();
+    setLoading(false);
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const tabs = ['dashboard', 'transactions', 'users', 'teams', 'bonus', 'winner', 'offers'];
 
   return (
     <div className="premium-page" style={{ minHeight: '100vh', background: '#080c1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', padding: '0 0 40px' }}>
@@ -333,7 +391,8 @@ export default function Admin() {
             users: 'Users',
             teams: 'Referral Teams',
             bonus: 'Bonus Codes',
-            winner: 'Weekly Highlights'
+            winner: 'Weekly Highlights',
+            offers: 'Machine Offers'
           };
           return (
             <button key={t} onClick={() => setTab(t)} style={{
@@ -378,6 +437,64 @@ export default function Admin() {
                 <Trash2 size={14} />
                 Remove from Home
               </button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'offers' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={card}>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '16px' }}>Limited-Time Machine Offers</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Offer Title</label><input value={machineOfferForm.title} onChange={e => setMachineOfferForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Flash Weekend" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Tier</label><select value={machineOfferForm.tier} onChange={e => setMachineOfferForm(prev => ({ ...prev, tier: e.target.value }))} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }}>
+                  {MACHINE_TIER_OPTIONS.map(tier => <option key={tier} value={tier} style={{ color: '#111827', backgroundColor: '#ffffff' }}>{tier}</option>)}
+                </select></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Price</label><input type="number" min="0" value={machineOfferForm.price} onChange={e => setMachineOfferForm(prev => ({ ...prev, price: e.target.value }))} placeholder="250" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Daily Income</label><input type="number" min="0" step="0.01" value={machineOfferForm.dailyIncome} onChange={e => setMachineOfferForm(prev => ({ ...prev, dailyIncome: e.target.value }))} placeholder="8.5" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Duration Days</label><input type="number" min="1" value={machineOfferForm.durationDays} onChange={e => setMachineOfferForm(prev => ({ ...prev, durationDays: e.target.value }))} placeholder="7" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Hashrate</label><input type="number" min="1" value={machineOfferForm.hashrate} onChange={e => setMachineOfferForm(prev => ({ ...prev, hashrate: e.target.value }))} placeholder="100" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Stock</label><input type="number" min="1" value={machineOfferForm.stock} onChange={e => setMachineOfferForm(prev => ({ ...prev, stock: e.target.value }))} placeholder="50" style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Start Time</label><input type="datetime-local" value={machineOfferForm.startAt ? machineOfferForm.startAt.slice(0, 16) : ''} onChange={e => setMachineOfferForm(prev => ({ ...prev, startAt: e.target.value }))} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }} /></div>
+                <div><label style={{ display: 'block', marginBottom: '6px', color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>End Time</label><input type="datetime-local" value={machineOfferForm.endAt ? machineOfferForm.endAt.slice(0, 16) : ''} onChange={e => setMachineOfferForm(prev => ({ ...prev, endAt: e.target.value }))} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', padding: '10px', color: '#fff' }} /></div>
+              </div>
+              <div style={{ marginTop: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>
+                  <input type="checkbox" checked={machineOfferForm.isActive} onChange={e => setMachineOfferForm(prev => ({ ...prev, isActive: e.target.checked }))} />
+                  Active immediately
+                </label>
+                <button type="button" onClick={createMachineOffer} disabled={loading} style={{ ...btn('linear-gradient(135deg, #00b4ff, #7c3aed)'), padding: '11px 20px' }}>Create Offer</button>
+              </div>
+            </div>
+
+            <div style={card}>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: '#fff', marginBottom: '14px' }}>Active / Scheduled Offers</div>
+              {machineOffers.length === 0 ? (
+                <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '12px' }}>No offers created yet.</div>
+              ) : (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {machineOffers.map(offer => (
+                    <div key={offer.id} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px', background: 'rgba(255,255,255,0.02)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff' }}>{offer.title}</div>
+                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>{offer.tier} · ${offer.price} · ${offer.dailyIncome}/day</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '999px', background: offer.isCurrentlyActive ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)', color: offer.isCurrentlyActive ? '#34d399' : '#fbbf24' }}>{offer.isCurrentlyActive ? 'Active' : 'Scheduled / Expired'}</span>
+                          <button type="button" onClick={() => removeMachineOffer(offer.id)} style={{ ...btn('#ef4444'), padding: '8px 10px' }}>Remove</button>
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
+                        <div>Stock: <strong style={{ color: '#fff' }}>{offer.remainingStock ?? offer.stock}</strong></div>
+                        <div>Sold: <strong style={{ color: '#fff' }}>{offer.soldCount || 0}</strong></div>
+                        <div>Start: <strong style={{ color: '#fff' }}>{offer.startAt ? new Date(offer.startAt).toLocaleString() : 'Now'}</strong></div>
+                        <div>End: <strong style={{ color: '#fff' }}>{offer.endAt ? new Date(offer.endAt).toLocaleString() : 'N/A'}</strong></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

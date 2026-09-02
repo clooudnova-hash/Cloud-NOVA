@@ -6,6 +6,8 @@ const net = require('net');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
+const helmet = require('helmet');
+const { rateLimit } = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
@@ -14,10 +16,58 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+app.set('trust proxy', 1);
 
-app.use(cors());
+const configuredOrigins = String(process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = new Set([
+  ...configuredOrigins.filter(origin => origin !== '*'),
+  'http://localhost',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://localhost:5001',
+  'http://localhost:5002',
+  'http://localhost:5003',
+  'capacitor://localhost'
+]);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error('Origin is not allowed by CORS.'));
+  }
+};
+const io = new Server(server, { cors: corsOptions });
+
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '8mb' }));
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 1200,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Too many requests. Please try again later.' }
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Too many authentication attempts. Please try again later.' }
+});
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { message: 'Too many admin requests. Please try again later.' }
+});
+app.use('/api', apiLimiter);
+app.use('/api/auth', authLimiter);
+app.use('/api/admin', adminLimiter);
 
 app.get('/api/market/btc', async (req, res) => {
   try {
@@ -91,8 +141,9 @@ const emailOtpCache = [];
 const taskClaims = [];
 const weeklyWinnerSettings = [];
 const depositSettings = [];
+const limitedMachineOffers = [];
 const stateFile = process.env.CLOUDNOVA_DATA_FILE || path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data'), 'cloudnova-state.json');
-const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims, weeklyWinnerSettings, depositSettings };
+const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims, weeklyWinnerSettings, depositSettings, limitedMachineOffers };
 const database = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 const restoreState = () => {
@@ -185,6 +236,21 @@ const mockPasswordHash = bcrypt.hashSync('Admin@123', 10);
 const initializeState = async () => {
   restoredState = database ? await restoreDatabaseState() : restoreState();
   if (database && !restoredState) restoredState = restoreState();
+  if (!limitedMachineOffers.length) limitedMachineOffers.push({
+    id: 'offer_demo_vip',
+    title: 'CloudNova VIP Flash Machine',
+    tier: 'VIP Cloud',
+    price: 75,
+    dailyIncome: 2.25,
+    durationDays: 45,
+    hashrate: 45,
+    stock: 10,
+    soldCount: 0,
+    startAt: new Date().toISOString(),
+    endAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+    createdAt: new Date().toISOString()
+  });
   if (!weeklyWinnerSettings.length) weeklyWinnerSettings.push({
     name: 'Hamza Khan', amount: 250, expiresAt: '2000-01-01T00:00:00.000Z',
     winners: [{ rank: 1, name: 'Hamza Khan', amount: 250 }, { rank: 2, name: 'Ali Raza', amount: 180 }, { rank: 3, name: 'Usman Ahmed', amount: 120 }]
@@ -246,6 +312,18 @@ const MINING_PLANS = {
   Enterprise: { cost: 200, dailyIncome: 6.00, durationDays: 50, hashrate: 100, limit: 5 },
   Elite: { cost: 500, dailyIncome: 9.09, durationDays: 88, hashrate: 250, limit: 5 }
 };
+
+const isOfferActive = offer => {
+  if (!offer || !offer.startAt || !offer.endAt) return false;
+  const now = Date.now();
+  const start = new Date(offer.startAt).getTime();
+  const end = new Date(offer.endAt).getTime();
+  const soldCount = Number(offer.soldCount || 0);
+  const stock = Number(offer.stock || 0);
+  return Boolean(offer.isActive !== false) && !Number.isNaN(start) && !Number.isNaN(end) && now >= start && now < end && soldCount < stock;
+};
+
+const getActiveMachineOffers = () => limitedMachineOffers.filter(offer => isOfferActive(offer));
 
 const getMiningSummary = (userId) => miningContracts
   .filter(contract => contract.userId === userId)
@@ -320,6 +398,7 @@ const verifyToken = (req, res, next) => {
     const user = users.find(item => item.id === req.user.id);
     if (!user) return res.status(401).json({ message: 'User account no longer exists.' });
     req.currentUser = user;
+    if (user.paused && user.role !== 'admin') return res.status(403).json({ message: 'This account is frozen. Contact an administrator.' });
     next();
   } catch (err) {
     res.status(401).json({ message: 'Session Expired or Invalid Token Key!' });
@@ -499,16 +578,100 @@ app.get('/api/wallet/history', verifyToken, (req, res) => {
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
+app.get('/api/public/machine-offers', (req, res) => {
+  try {
+    const offers = getActiveMachineOffers().map(offer => ({
+      ...offer,
+      remainingStock: Math.max(0, Number(offer.stock || 0) - Number(offer.soldCount || 0))
+    }));
+    return res.status(200).json({ offers });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/mining/offers', verifyToken, (req, res) => {
+  try {
+    const offers = getActiveMachineOffers().map(offer => ({
+      ...offer,
+      remainingStock: Math.max(0, Number(offer.stock || 0) - Number(offer.soldCount || 0))
+    }));
+    return res.status(200).json({ offers });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/admin/machine-offers', verifyToken, (req, res) => {
+  try {
+    return res.status(200).json(limitedMachineOffers.map(offer => ({
+      ...offer,
+      remainingStock: Math.max(0, Number(offer.stock || 0) - Number(offer.soldCount || 0)),
+      isCurrentlyActive: isOfferActive(offer)
+    })));
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/admin/machine-offers', verifyToken, (req, res) => {
+  try {
+    const { title, tier, price, dailyIncome, durationDays, hashrate, stock, startAt, endAt, isActive } = req.body;
+    if (!title || !tier || !Number.isFinite(Number(price)) || !Number.isFinite(Number(dailyIncome)) || !Number.isFinite(Number(durationDays)) || !Number.isFinite(Number(hashrate)) || !Number.isFinite(Number(stock))) {
+      return res.status(400).json({ message: 'Valid title, tier, price, income, duration, hashrate and stock are required.' });
+    }
+
+    const offer = {
+      id: 'offer_' + Math.random().toString(36).substring(2, 10),
+      title: String(title).trim(),
+      tier,
+      price: Number(price),
+      dailyIncome: Number(dailyIncome),
+      durationDays: Number(durationDays),
+      hashrate: Number(hashrate),
+      stock: Number(stock),
+      soldCount: 0,
+      startAt: startAt || new Date().toISOString(),
+      endAt: endAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      isActive: typeof isActive === 'boolean' ? isActive : true,
+      createdAt: new Date().toISOString()
+    };
+
+    limitedMachineOffers.push(offer);
+  persistState();
+    return res.status(201).json({ success: true, message: 'Limited machine offer created.', offer });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/admin/machine-offers/:id', verifyToken, (req, res) => {
+  try {
+    const index = limitedMachineOffers.findIndex(offer => offer.id === req.params.id);
+    if (index === -1) return res.status(404).json({ message: 'Offer not found.' });
+    limitedMachineOffers.splice(index, 1);
+    persistState();
+    return res.status(200).json({ success: true, message: 'Offer removed.' });
+  } catch (err) { return res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/plans/lease', verifyToken, (req, res) => {
   try {
     if (req.currentUser.paused) return res.status(403).json({ message: 'Mining is paused for this account.' });
-    const { tier } = req.body;
+    const { tier, offerId } = req.body;
     const wallet = wallets.find(w => w.userId === req.user.id);
-    const plan = MINING_PLANS[tier];
+    let plan = MINING_PLANS[tier];
+    let selectedOffer = null;
+
+    if (offerId) {
+      selectedOffer = limitedMachineOffers.find(offer => offer.id === offerId);
+      if (!selectedOffer) return res.status(400).json({ message: 'Selected machine offer not found.' });
+      if (!isOfferActive(selectedOffer)) return res.status(400).json({ message: 'This limited offer has expired or sold out.' });
+      plan = {
+        cost: Number(selectedOffer.price),
+        dailyIncome: Number(selectedOffer.dailyIncome),
+        durationDays: Number(selectedOffer.durationDays),
+        hashrate: Number(selectedOffer.hashrate),
+        limit: Number(selectedOffer.stock || 1)
+      };
+    }
+
     if (!plan) return res.status(400).json({ message: 'Invalid network tier selection' });
     syncMiningWallet(req.user.id);
-    const purchasedCount = miningContracts.filter(contract => contract.userId === req.user.id && contract.tier === tier).length;
-    if (purchasedCount >= plan.limit) return res.status(400).json({ message: `${tier} plan purchase limit reached.` });
+    const purchasedCount = miningContracts.filter(contract => contract.userId === req.user.id && contract.tier === (selectedOffer ? selectedOffer.tier : tier)).length;
+    if (purchasedCount >= (plan.limit || 1)) return res.status(400).json({ message: `${selectedOffer ? selectedOffer.title : tier} plan purchase limit reached.` });
 
     if (wallet.balance < plan.cost) return res.status(400).json({ message: 'Insufficient resources account balance' });
 
@@ -517,11 +680,16 @@ app.post('/api/plans/lease', verifyToken, (req, res) => {
     wallet.minersCount += 1;
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + plan.durationDays * 86400000);
-    const contract = { id: 'mine_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, tier, cost: plan.cost, dailyIncome: plan.dailyIncome, durationDays: plan.durationDays, hashrate: plan.hashrate, startDate: startDate.toISOString(), endDate: endDate.toISOString(), lastCollectedAt: startDate.toISOString() };
+    const contract = { id: 'mine_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, tier: selectedOffer ? selectedOffer.tier : tier, cost: plan.cost, dailyIncome: plan.dailyIncome, durationDays: plan.durationDays, hashrate: plan.hashrate, startDate: startDate.toISOString(), endDate: endDate.toISOString(), lastCollectedAt: startDate.toISOString(), offerId: selectedOffer ? selectedOffer.id : null };
     miningContracts.push(contract);
 
-    transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: `Lease ${tier}`, amount: plan.cost, network: 'Internal Server', txid: contract.id, status: 'completed', date: startDate.toISOString(), contractId: contract.id });
-    return res.status(200).json({ success: true, contract, message: 'Mining contract activated successfully.' });
+    if (selectedOffer) {
+      selectedOffer.soldCount = Number(selectedOffer.soldCount || 0) + 1;
+    }
+
+    transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: `Lease ${selectedOffer ? selectedOffer.tier : tier}`, amount: plan.cost, network: 'Internal Server', txid: contract.id, status: 'completed', date: startDate.toISOString(), contractId: contract.id });
+    persistState();
+    return res.status(200).json({ success: true, contract, message: selectedOffer ? `${selectedOffer.title} machine activated successfully.` : 'Mining contract activated successfully.' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
@@ -772,6 +940,7 @@ app.post('/api/admin/users/pause', verifyToken, (req, res) => {
   if (!user) return res.status(404).json({ message: 'User not found' });
   if (user.id === req.user.id) return res.status(400).json({ message: 'You cannot pause the current admin account.' });
   user.paused = req.body.paused === undefined ? !user.paused : Boolean(req.body.paused);
+  persistState();
   return res.status(200).json({ success: true, paused: user.paused, message: user.paused ? 'User paused.' : 'User resumed.' });
 });
 
