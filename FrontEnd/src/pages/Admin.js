@@ -90,10 +90,14 @@ export default function Admin() {
     loadAll();
   }, []); // eslint-disable-line
 
+  const loadTransactions = useCallback(async () => {
+    const tx = await api('/api/admin/transactions');
+    setTransactions(Array.isArray(tx) ? tx.reverse() : []);
+  }, []);
+
   const loadAll = useCallback(async () => {
     const requests = [
       api('/api/admin/metrics').then(setMetrics),
-      api('/api/admin/transactions').then(tx => setTransactions(Array.isArray(tx) ? tx.reverse() : [])),
       api('/api/admin/users').then(u => setUsers(Array.isArray(u) ? u : [])),
       api('/api/admin/bonus').then(b => setBonusCodes(Array.isArray(b) ? b : [])),
       api('/api/admin/task-claims').then(tc => setTaskClaims(Array.isArray(tc) ? tc : [])),
@@ -108,7 +112,7 @@ export default function Admin() {
     setLoading(true);
     const res = await api('/api/admin/transactions/action', { method: 'POST', body: { id, action } });
     setMsg(res.message || res.error);
-    await loadAll();
+    await loadTransactions();
     setLoading(false);
     setTimeout(() => setMsg(''), 3000);
   };
@@ -395,7 +399,7 @@ export default function Admin() {
             offers: 'Machine Offers'
           };
           return (
-            <button key={t} onClick={() => setTab(t)} style={{
+            <button key={t} onClick={() => { setTab(t); if (t === 'transactions') loadTransactions(); }} style={{
               background: tab === t ? 'linear-gradient(135deg, #00b4ff22, #7c3aed22)' : 'transparent',
               border: tab === t ? '1px solid rgba(0,180,255,0.3)' : '1px solid transparent',
               borderRadius: '8px 8px 0 0', padding: '10px 16px', color: tab === t ? '#7dd3fc' : 'rgba(255,255,255,0.4)',

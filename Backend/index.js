@@ -510,7 +510,7 @@ app.get('/api/mining/contracts', verifyToken, (req, res) => {
   return res.status(200).json(getMiningSummary(req.user.id));
 });
 
-app.post('/api/mining/collect', verifyToken, (req, res) => {
+app.post('/api/mining/collect', verifyToken, async (req, res) => {
   try {
     if (req.currentUser.paused) return res.status(403).json({ message: 'Mining is paused for this account.' });
     const now = new Date();
@@ -531,11 +531,12 @@ app.post('/api/mining/collect', verifyToken, (req, res) => {
       earnings.push(transaction);
     });
     syncMiningWallet(req.user.id);
+    await persistState();
     return res.status(200).json({ success: true, credited: Number(earnings.reduce((sum, item) => sum + item.amount, 0).toFixed(4)), earnings, balance: wallet.balance, message: earnings.length ? 'Mining income collected.' : 'No mining income is available yet.' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/wallet/deposit', verifyToken, (req, res) => {
+app.post('/api/wallet/deposit', verifyToken, async (req, res) => {
   try {
     if (!isWithinBusinessHours(false) && !req.currentUser.allowDepositOutsideHours) return res.status(400).json({ message: 'Deposits are accepted from 10:00 AM to 09:00 PM Pakistan time.' });
     const { txid, network, amount, proofImage } = req.body;
@@ -572,11 +573,12 @@ app.post('/api/wallet/deposit', verifyToken, (req, res) => {
       if (depositedUser) syncVipLevel(depositedUser);
       creditReferralRewards(deposit);
     }
+    await persistState();
     return res.status(201).json({ success: true, message: deposit.status === 'completed' ? 'Deposit approved automatically and balance updated.' : 'Deposit proof queued for admin approval.', taxAmount, totalToPay, netAmount, status: deposit.status });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/wallet/withdraw', verifyToken, (req, res) => {
+app.post('/api/wallet/withdraw', verifyToken, async (req, res) => {
   try {
     if (!isWithinBusinessHours(true) && !req.currentUser.allowWithdrawalOutsideHours) return res.status(400).json({ message: 'Withdrawals are accepted Monday to Friday, 10:00 AM to 09:00 PM Pakistan time.' });
     const { address, accountName, bankName, network, amount } = req.body;
@@ -589,6 +591,7 @@ app.post('/api/wallet/withdraw', verifyToken, (req, res) => {
     if (wallet.balance - reserved < totalDeduction) return res.status(400).json({ message: 'Insufficient available balance' });
 
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'withdrawal', amount: netAmount, taxAmount, totalDeduction, network, txid: address, accountName: accountName.trim(), bankName: bankName ? bankName.trim() : '', status: 'pending', date: new Date().toISOString() });
+  await persistState();
     return res.status(201).json({ success: true, message: 'Withdrawal locked inside pending approvals pipeline', taxAmount, totalDeduction, netAmount });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -828,7 +831,7 @@ app.get('/api/admin/transactions', verifyToken, (req, res) => {
   return res.status(200).json(transactions);
 });
 
-app.post('/api/admin/transactions/action', verifyToken, (req, res) => {
+app.post('/api/admin/transactions/action', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     const { id, action } = req.body;
@@ -865,6 +868,7 @@ app.post('/api/admin/transactions/action', verifyToken, (req, res) => {
       }
       w.balance = Number((w.balance - totalDeduction).toFixed(4));
     }
+    await persistState();
     return res.status(200).json({ success: true, message: 'Status updated' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
