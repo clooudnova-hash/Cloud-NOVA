@@ -639,6 +639,12 @@ app.post('/api/admin/machine-offers', verifyToken, (req, res) => {
       return res.status(400).json({ message: 'Valid title, tier, price, income, duration, hashrate and stock are required.' });
     }
 
+    const parsedStartAt = startAt ? parsePakistanDateTime(startAt) : new Date();
+    const parsedEndAt = endAt ? parsePakistanDateTime(endAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    if (Number.isNaN(parsedStartAt.getTime()) || Number.isNaN(parsedEndAt.getTime()) || parsedEndAt <= parsedStartAt) {
+      return res.status(400).json({ message: 'Start and end times must be valid, and end time must be after start time.' });
+    }
+
     const offer = {
       id: 'offer_' + Math.random().toString(36).substring(2, 10),
       title: String(title).trim(),
@@ -649,8 +655,8 @@ app.post('/api/admin/machine-offers', verifyToken, (req, res) => {
       hashrate: Number(hashrate),
       stock: Number(stock),
       soldCount: 0,
-      startAt: startAt || new Date().toISOString(),
-      endAt: endAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      startAt: parsedStartAt.toISOString(),
+      endAt: parsedEndAt.toISOString(),
       isActive: typeof isActive === 'boolean' ? isActive : true,
       createdAt: new Date().toISOString()
     };
