@@ -78,7 +78,7 @@ const Wallet = () => {
     if (!timeAccess.allowDepositOutsideHours && !isWithinBusinessHours(false)) { showBusinessHours(false); return; }
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (!amount) { showMsg('Please enter amount.', 'error'); return; }
-    if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 10) { showMsg('Minimum deposit amount is $10.00.', 'error'); return; }
+    if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 1) { showMsg('Minimum deposit amount is $1.00.', 'error'); return; }
     if (!txid) { showMsg('Please enter transaction ID / hash.', 'error'); return; }
     if (!proofImage) { showMsg('Please upload your payment screenshot.', 'error'); return; }
     setLoading(true);
@@ -205,8 +205,8 @@ const Wallet = () => {
         {activeTab === 'deposit' && (
           <form onSubmit={handleDeposit} className="space-y-4">
             <div>
-              <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($) · Minimum $10.00</label>
-              <input type="number" min="10" step="0.01" placeholder="Minimum $10.00" value={amount} onChange={e => setAmount(e.target.value)}
+              <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($) · Minimum $1.00</label>
+              <input type="number" min="1" step="0.01" placeholder="Minimum $1.00" value={amount} onChange={e => setAmount(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500 transition" />
               <div className="mt-2 flex items-center justify-between text-[10px] font-bold rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-amber-700">
                 <span>8% tax</span>

@@ -234,7 +234,7 @@ const persistState = () => {
 let restoredState = false;
 const PROMO_MAX_FAILED_ATTEMPTS = 3;
 const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
-const MIN_DEPOSIT_AMOUNT = 10;
+const MIN_DEPOSIT_AMOUNT = 1;
 const MIN_WITHDRAWAL_AMOUNT = 3;
 const DEPOSIT_TAX_RATE = 0.08;
 const WITHDRAWAL_TAX_RATE = 0.15;
