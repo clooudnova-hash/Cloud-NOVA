@@ -834,7 +834,11 @@ app.get('/api/public/weekly-winner', (req, res) => {
 
 app.get('/api/admin/transactions', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
-  return res.status(200).json(transactions);
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 100));
+  const orderedTransactions = transactions.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  const start = (page - 1) * limit;
+  return res.status(200).json({ transactions: orderedTransactions.slice(start, start + limit), total: orderedTransactions.length, page, limit });
 });
 
 app.post('/api/admin/transactions/action', verifyToken, async (req, res) => {

@@ -47,6 +47,8 @@ export default function Admin() {
   const [tab, setTab] = useState('dashboard');
   const [metrics, setMetrics] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [transactionTotal, setTransactionTotal] = useState(0);
+  const [transactionPage, setTransactionPage] = useState(1);
   const [users, setUsers] = useState([]);
   const [bonusCodes, setBonusCodes] = useState([]);
   const [taskClaims, setTaskClaims] = useState([]);
@@ -90,9 +92,17 @@ export default function Admin() {
     loadAll();
   }, []); // eslint-disable-line
 
-  const loadTransactions = useCallback(async () => {
-    const tx = await api('/api/admin/transactions');
-    setTransactions(Array.isArray(tx) ? tx.reverse() : []);
+  const loadTransactions = useCallback(async (page = 1) => {
+    const result = await api(`/api/admin/transactions?page=${page}&limit=100`);
+    if (Array.isArray(result)) {
+      setTransactions(result.slice().reverse());
+      setTransactionTotal(result.length);
+      setTransactionPage(page);
+      return;
+    }
+    setTransactions(Array.isArray(result?.transactions) ? result.transactions : []);
+    setTransactionTotal(Number(result?.total || 0));
+    setTransactionPage(Number(result?.page || page));
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -112,7 +122,7 @@ export default function Admin() {
     setLoading(true);
     const res = await api('/api/admin/transactions/action', { method: 'POST', body: { id, action } });
     setMsg(res.message || res.error);
-    await loadTransactions();
+    await loadTransactions(transactionPage);
     setLoading(false);
     setTimeout(() => setMsg(''), 3000);
   };
@@ -399,7 +409,7 @@ export default function Admin() {
             offers: 'Machine Offers'
           };
           return (
-            <button key={t} onClick={() => { setTab(t); if (t === 'transactions') loadTransactions(); }} style={{
+              <button key={t} onClick={() => { setTab(t); if (t === 'transactions') loadTransactions(1); }} style={{
               background: tab === t ? 'linear-gradient(135deg, #00b4ff22, #7c3aed22)' : 'transparent',
               border: tab === t ? '1px solid rgba(0,180,255,0.3)' : '1px solid transparent',
               borderRadius: '8px 8px 0 0', padding: '10px 16px', color: tab === t ? '#7dd3fc' : 'rgba(255,255,255,0.4)',
@@ -692,7 +702,7 @@ export default function Admin() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CreditCard size={16} />
-                All Transactions ({transactions.length})
+                All Transactions ({transactionTotal})
                 <span style={{ marginLeft: '12px', fontSize: '11px', color: '#f59e0b', fontWeight: '600' }}>
                   Pending: {transactions.filter(t => t.status === 'pending').length}
                 </span>
@@ -718,7 +728,7 @@ export default function Admin() {
               ))}
             </div>
             <div style={card}>
-              {transactions.length === 0
+                {transactions.length === 0
                 ? <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Koi transaction nahi hai</div>
                 : (() => {
                     const filtered = transactions.filter(tx => {
@@ -788,6 +798,13 @@ export default function Admin() {
                     );
                   })()
               }
+              {transactionTotal > 100 && (
+                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>Page {transactionPage} of {Math.ceil(transactionTotal / 100)}</span>
+                  <button type="button" onClick={() => loadTransactions(transactionPage - 1)} disabled={transactionPage <= 1 || loading} style={btn(transactionPage <= 1 ? 'rgba(255,255,255,0.08)' : '#00b4ff')}>Previous</button>
+                  <button type="button" onClick={() => loadTransactions(transactionPage + 1)} disabled={transactionPage >= Math.ceil(transactionTotal / 100) || loading} style={btn(transactionPage >= Math.ceil(transactionTotal / 100) ? 'rgba(255,255,255,0.08)' : '#00b4ff')}>Next</button>
+                </div>
+              )}
             </div>
           </div>
         )}
