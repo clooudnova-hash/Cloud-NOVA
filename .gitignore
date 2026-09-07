@@ -10,4 +10,5 @@ Backend/uploads/*
 !Backend/uploads/.gitkeep
 npm-debug.log*
 Backend/data/*.json
+Backend/data/*.csv
 FrontEnd/android/local.properties

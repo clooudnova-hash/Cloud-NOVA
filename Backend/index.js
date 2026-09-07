@@ -150,6 +150,10 @@ const parsePakistanDateTime = value => {
   const text = String(value || '').trim();
   return new Date(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(text) ? `${text}:00+05:00` : text);
 };
+const getPakistanDateKey = value => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Karachi', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(value));
+  return `${parts.find(part => part.type === 'year')?.value}-${parts.find(part => part.type === 'month')?.value}-${parts.find(part => part.type === 'day')?.value}`;
+};
 
 
 const users = [];
@@ -164,6 +168,7 @@ const weeklyWinnerSettings = [];
 const depositSettings = [];
 const limitedMachineOffers = [];
 const stateFile = process.env.CLOUDNOVA_DATA_FILE || path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'data'), 'cloudnova-state.json');
+const transactionExportFile = process.env.CLOUDNOVA_TRANSACTION_EXPORT_FILE || path.join(__dirname, 'data', 'transactions-export.csv');
 const stateCollections = { users, wallets, transactions, miningContracts, couponVouchers, bonusClaims, emailOtpCache, taskClaims, weeklyWinnerSettings, depositSettings, limitedMachineOffers };
 const database = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
@@ -193,6 +198,24 @@ const saveFileState = () => {
   }
 };
 
+const csvCell = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const saveTransactionExport = () => {
+  try {
+    fs.mkdirSync(path.dirname(transactionExportFile), { recursive: true });
+    const headers = ['Date', 'User ID', 'Type', 'Amount', 'Network', 'TxID / Address', 'Status', 'Account Name', 'Bank Name'];
+    const rows = transactions.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).map(transaction => [
+      transaction.date, transaction.userId, transaction.type, transaction.amount, transaction.network,
+      transaction.txid, transaction.status, transaction.accountName, transaction.bankName
+    ]);
+    const content = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\n');
+    const temporaryFile = `${transactionExportFile}.tmp`;
+    fs.writeFileSync(temporaryFile, `\uFEFF${content}`, 'utf8');
+    fs.renameSync(temporaryFile, transactionExportFile);
+  } catch (error) {
+    console.error('Transaction export could not be saved:', error.message);
+  }
+};
+
 const applyState = saved => {
   Object.entries(stateCollections).forEach(([name, collection]) => {
     collection.length = 0;
@@ -219,6 +242,7 @@ const persistState = () => {
   persistQueue = persistQueue.then(async () => {
     if (!database) {
       saveFileState();
+      saveTransactionExport();
       return;
     }
     await database.query(
@@ -227,6 +251,7 @@ const persistState = () => {
        ON CONFLICT (id) DO UPDATE SET state = EXCLUDED.state, updated_at = CURRENT_TIMESTAMP`,
       [JSON.stringify(stateCollections)]
     );
+    saveTransactionExport();
   }).catch(error => console.error('Persistent state could not be saved:', error.message));
   return persistQueue;
 };
@@ -390,6 +415,21 @@ const syncVipLevel = (user) => {
   return { vipLevel: user.vipLevel, accumulatedDeposit: Number(completedDeposits.toFixed(2)) };
 };
 
+const getWithdrawalEligibility = userId => {
+  const userTransactions = transactions.filter(transaction => transaction.userId === userId);
+  const hasCompletedDeposit = userTransactions.some(transaction => transaction.type === 'deposit' && transaction.status === 'completed');
+  const hasPurchasedMachine = miningContracts.some(contract => contract.userId === userId);
+  const wallet = wallets.find(item => item.userId === userId);
+  const hasMinimumBalance = Number(wallet?.balance || 0) >= MIN_WITHDRAWAL_AMOUNT;
+  const hasWithdrawalToday = userTransactions.some(transaction => transaction.type === 'withdrawal' && getPakistanDateKey(transaction.date) === getPakistanDateKey(new Date()));
+  let message = '';
+  if (!hasCompletedDeposit) message = 'Complete your first deposit before requesting a withdrawal.';
+  else if (!hasPurchasedMachine) message = 'Buy a mining machine before requesting a withdrawal.';
+  else if (!hasMinimumBalance) message = `A minimum available balance of $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)} is required to withdraw.`;
+  else if (hasWithdrawalToday) message = 'You can submit only one withdrawal request per day.';
+  return { allowed: hasCompletedDeposit && hasPurchasedMachine && hasMinimumBalance && !hasWithdrawalToday, message };
+};
+
 const creditReferralRewards = (deposit) => {
   const depositor = users.find(user => user.id === deposit.userId);
   if (!depositor || !depositor.referredBy) return [];
@@ -496,7 +536,7 @@ app.get('/api/user/dashboard', verifyToken, (req, res) => {
       username: user.username, referredBy: user.referredBy, paused: user.paused,
       allowDepositOutsideHours: Boolean(user.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(user.allowWithdrawalOutsideHours),
       balance: wallet.balance, baseHashrate: wallet.baseHashrate, effectiveHashrate: wallet.effectiveHashrate, minersCount: wallet.minersCount,
-      team: getTeamTree(user.id), miningContracts: getMiningSummary(user.id), incomeSummary: getIncomeSummary(user.id)
+      team: getTeamTree(user.id), miningContracts: getMiningSummary(user.id), incomeSummary: getIncomeSummary(user.id), withdrawalEligibility: getWithdrawalEligibility(user.id)
     });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -580,6 +620,8 @@ app.post('/api/wallet/deposit', verifyToken, async (req, res) => {
 
 app.post('/api/wallet/withdraw', verifyToken, async (req, res) => {
   try {
+    const withdrawalEligibility = getWithdrawalEligibility(req.user.id);
+    if (!withdrawalEligibility.allowed) return res.status(400).json({ message: withdrawalEligibility.message });
     if (!isWithinBusinessHours(true) && !req.currentUser.allowWithdrawalOutsideHours) return res.status(400).json({ message: 'Withdrawals are accepted Monday to Friday, 10:00 AM to 09:00 PM Pakistan time.' });
     const { address, accountName, bankName, network, amount } = req.body;
     const wallet = wallets.find(w => w.userId === req.user.id);
@@ -834,11 +876,20 @@ app.get('/api/public/weekly-winner', (req, res) => {
 
 app.get('/api/admin/transactions', verifyToken, (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
-  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 100));
   const orderedTransactions = transactions.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
-  const start = (page - 1) * limit;
-  return res.status(200).json({ transactions: orderedTransactions.slice(start, start + limit), total: orderedTransactions.length, page, limit });
+  const todayKey = getPakistanDateKey(new Date());
+  const dateKeys = [todayKey, ...new Set(orderedTransactions.map(transaction => getPakistanDateKey(transaction.date)).filter(dateKey => dateKey !== todayKey))];
+  const page = Math.min(dateKeys.length || 1, Math.max(1, parseInt(req.query.page, 10) || 1));
+  const dateKey = dateKeys[page - 1] || todayKey;
+  const dayTransactions = orderedTransactions.filter(transaction => getPakistanDateKey(transaction.date) === dateKey);
+  const dateLabel = dateKey === todayKey ? 'Today' : new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${dateKey}T00:00:00+05:00`));
+  return res.status(200).json({ transactions: dayTransactions, total: dayTransactions.length, page, totalDays: dateKeys.length || 1, date: dateKey, dateLabel });
+});
+
+app.get('/api/admin/transactions/export', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
+  saveTransactionExport();
+  return res.download(transactionExportFile, 'cloudnova-transactions.csv');
 });
 
 app.post('/api/admin/transactions/action', verifyToken, async (req, res) => {

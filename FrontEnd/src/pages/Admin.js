@@ -49,6 +49,8 @@ export default function Admin() {
   const [transactions, setTransactions] = useState([]);
   const [transactionTotal, setTransactionTotal] = useState(0);
   const [transactionPage, setTransactionPage] = useState(1);
+  const [transactionTotalDays, setTransactionTotalDays] = useState(1);
+  const [transactionDateLabel, setTransactionDateLabel] = useState('Today');
   const [users, setUsers] = useState([]);
   const [bonusCodes, setBonusCodes] = useState([]);
   const [taskClaims, setTaskClaims] = useState([]);
@@ -93,17 +95,33 @@ export default function Admin() {
   }, []); // eslint-disable-line
 
   const loadTransactions = useCallback(async (page = 1) => {
-    const result = await api(`/api/admin/transactions?page=${page}&limit=100`);
+    const result = await api(`/api/admin/transactions?page=${page}`);
     if (Array.isArray(result)) {
       setTransactions(result.slice().reverse());
       setTransactionTotal(result.length);
       setTransactionPage(page);
+      setTransactionTotalDays(1);
+      setTransactionDateLabel('Today');
       return;
     }
     setTransactions(Array.isArray(result?.transactions) ? result.transactions : []);
     setTransactionTotal(Number(result?.total || 0));
     setTransactionPage(Number(result?.page || page));
+    setTransactionTotalDays(Number(result?.totalDays || 1));
+    setTransactionDateLabel(result?.dateLabel || 'Today');
   }, []);
+
+  const exportTransactions = async () => {
+    const response = await fetch('/api/admin/transactions/export', { headers: { authorization: token() } });
+    if (!response.ok) { setMsg('Transaction export could not be downloaded.'); return; }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'cloudnova-transactions.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const loadAll = useCallback(async () => {
     const requests = [
@@ -702,11 +720,12 @@ export default function Admin() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CreditCard size={16} />
-                All Transactions ({transactionTotal})
+                All Transactions · {transactionDateLabel} ({transactionTotal})
                 <span style={{ marginLeft: '12px', fontSize: '11px', color: '#f59e0b', fontWeight: '600' }}>
                   Pending: {transactions.filter(t => t.status === 'pending').length}
                 </span>
               </div>
+              <button type="button" onClick={exportTransactions} style={{ ...btn('#10b981'), marginLeft: 'auto' }}>Download Excel</button>
               <input
                 placeholder="Search by type, network or TxID..."
                 value={txSearch}
@@ -798,11 +817,11 @@ export default function Admin() {
                     );
                   })()
               }
-              {transactionTotal > 100 && (
+              {transactionTotalDays > 1 && (
                 <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>Page {transactionPage} of {Math.ceil(transactionTotal / 100)}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px' }}>Day {transactionPage} of {transactionTotalDays}</span>
                   <button type="button" onClick={() => loadTransactions(transactionPage - 1)} disabled={transactionPage <= 1 || loading} style={btn(transactionPage <= 1 ? 'rgba(255,255,255,0.08)' : '#00b4ff')}>Previous</button>
-                  <button type="button" onClick={() => loadTransactions(transactionPage + 1)} disabled={transactionPage >= Math.ceil(transactionTotal / 100) || loading} style={btn(transactionPage >= Math.ceil(transactionTotal / 100) ? 'rgba(255,255,255,0.08)' : '#00b4ff')}>Next</button>
+                  <button type="button" onClick={() => loadTransactions(transactionPage + 1)} disabled={transactionPage >= transactionTotalDays || loading} style={btn(transactionPage >= transactionTotalDays ? 'rgba(255,255,255,0.08)' : '#00b4ff')}>Next</button>
                 </div>
               )}
             </div>

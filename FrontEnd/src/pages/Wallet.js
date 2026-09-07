@@ -16,6 +16,7 @@ const Wallet = () => {
   const [transactionNotice, setTransactionNotice] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [balance, setBalance] = useState(null);
+  const [withdrawalEligibility, setWithdrawalEligibility] = useState({ allowed: false, message: 'Complete a deposit and buy a mining machine before requesting a withdrawal.' });
   const [timeAccess, setTimeAccess] = useState({ allowDepositOutsideHours: false, allowWithdrawalOutsideHours: false });
 
   const adminDetails = {
@@ -38,7 +39,7 @@ const Wallet = () => {
     // Fetch balance
     fetch('/api/user/dashboard', { headers: { authorization: token } })
       .then(r => r.json())
-      .then(d => { if (d.balance !== undefined) setBalance(parseFloat(d.balance).toFixed(2)); setTimeAccess({ allowDepositOutsideHours: Boolean(d.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(d.allowWithdrawalOutsideHours) }); })
+      .then(d => { if (d.balance !== undefined) setBalance(parseFloat(d.balance).toFixed(2)); setTimeAccess({ allowDepositOutsideHours: Boolean(d.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(d.allowWithdrawalOutsideHours) }); if (d.withdrawalEligibility) setWithdrawalEligibility(d.withdrawalEligibility); })
       .catch(() => {});
     // Fetch history
     fetch('/api/wallet/history', { headers: { authorization: token } })
@@ -97,6 +98,7 @@ const Wallet = () => {
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
+    if (!withdrawalEligibility.allowed) { showTransactionNotice('rejected', withdrawalEligibility.message); return; }
     if (!timeAccess.allowWithdrawalOutsideHours && !isWithinBusinessHours(true)) { showBusinessHours(true); return; }
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (Number.parseFloat(balance || '0') <= 0) { showTransactionNotice('rejected', 'Your wallet balance is $0.00. Add funds before requesting a withdrawal.'); return; }
@@ -151,10 +153,10 @@ const Wallet = () => {
             className={`py-2.5 rounded-xl border font-black uppercase transition-all duration-200 ${activeTab === 'deposit' ? 'bg-white text-[#1d4ed8] border-white shadow-[0_0_15px_rgba(255,255,255,0.6)]' : 'bg-transparent text-white border-white/30'}`}>
             📥 Deposit Funds
           </button>
-          <button type="button" onClick={() => setActiveTab('withdraw')}
+          {withdrawalEligibility.allowed && <button type="button" onClick={() => setActiveTab('withdraw')}
             className={`py-2.5 rounded-xl border font-black uppercase transition-all duration-200 ${activeTab === 'withdraw' ? 'bg-white text-[#1d4ed8] border-white shadow-[0_0_15px_rgba(255,255,255,0.6)]' : 'bg-transparent text-white border-white/30'}`}>
             📤 Withdraw Cash
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -162,6 +164,7 @@ const Wallet = () => {
       <div className="wallet-hours-card mx-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[10px] text-amber-700 font-semibold shadow-sm">
         <p>🕒 Deposit Hours: 10:00 AM - 09:00 PM (Everyday)</p>
         <p className="mt-0.5">📆 Withdrawal Hours: 10:00 AM - 09:00 PM (Monday to Friday)</p>
+        {!withdrawalEligibility.allowed && <p className="mt-1 text-red-600">Withdrawal unavailable: {withdrawalEligibility.message}</p>}
       </div>
 
       {/* Alert message */}
