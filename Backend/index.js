@@ -421,12 +421,14 @@ const getWithdrawalEligibility = userId => {
   const hasPurchasedMachine = miningContracts.some(contract => contract.userId === userId);
   const wallet = wallets.find(item => item.userId === userId);
   const hasMinimumBalance = Number(wallet?.balance || 0) >= MIN_WITHDRAWAL_AMOUNT;
-  const hasWithdrawalToday = userTransactions.some(transaction => transaction.type === 'withdrawal' && getPakistanDateKey(transaction.date) === getPakistanDateKey(new Date()));
+  const user = users.find(item => item.id === userId);
+  const allowMultipleWithdrawals = Boolean(user?.allowMultipleWithdrawals);
+  const hasWithdrawalToday = !allowMultipleWithdrawals && userTransactions.some(transaction => transaction.type === 'withdrawal' && getPakistanDateKey(transaction.date) === getPakistanDateKey(new Date()));
   let message = '';
   if (!hasPurchasedMachine) message = 'Buy a mining machine before requesting a withdrawal.';
   else if (!hasMinimumBalance) message = `A minimum available balance of $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)} is required to withdraw.`;
   else if (hasWithdrawalToday) message = 'You can submit only one withdrawal request per day.';
-  return { allowed: hasPurchasedMachine && hasMinimumBalance && !hasWithdrawalToday, message };
+  return { allowed: hasPurchasedMachine && hasMinimumBalance && !hasWithdrawalToday, message, allowMultipleWithdrawals };
 };
 
 const creditReferralRewards = (deposit) => {
@@ -948,7 +950,7 @@ app.get('/api/admin/users', verifyToken, (req, res) => {
     const w = wallets.find(wl => wl.userId === u.id) || {};
     const upline = users.find(user => user.id === u.referredBy);
     const team = getTeamTree(u.id);
-    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0, allowDepositOutsideHours: Boolean(u.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(u.allowWithdrawalOutsideHours), miningContracts: getMiningSummary(u.id), team, teamSummary: getTeamSummary(team) };
+    return { id: u.id, username: u.username, fullName: u.fullName, email: u.email, role: u.role, vipLevel: vip.vipLevel, accumulatedDeposit: vip.accumulatedDeposit, myReferralCode: u.myReferralCode, referredBy: u.referredBy, referredByCode: upline ? upline.myReferralCode : '', referredByUser: upline ? { username: upline.username, fullName: upline.fullName } : null, paused: Boolean(u.paused), balance: w.balance || 0, minersCount: w.minersCount || 0, allowDepositOutsideHours: Boolean(u.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(u.allowWithdrawalOutsideHours), allowMultipleWithdrawals: Boolean(u.allowMultipleWithdrawals), miningContracts: getMiningSummary(u.id), team, teamSummary: getTeamSummary(team) };
   });
   return res.status(200).json(result);
 });
@@ -1047,8 +1049,9 @@ app.post('/api/admin/users/time-access', verifyToken, async (req, res) => {
   if (!user) return res.status(404).json({ message: 'User not found' });
   user.allowDepositOutsideHours = Boolean(req.body.allowDepositOutsideHours);
   user.allowWithdrawalOutsideHours = Boolean(req.body.allowWithdrawalOutsideHours);
+  user.allowMultipleWithdrawals = Boolean(req.body.allowMultipleWithdrawals);
   await persistState();
-  return res.status(200).json({ success: true, message: `Time access updated for ${user.username}.`, allowDepositOutsideHours: user.allowDepositOutsideHours, allowWithdrawalOutsideHours: user.allowWithdrawalOutsideHours });
+  return res.status(200).json({ success: true, message: `Withdrawal and time access updated for ${user.username}.`, allowDepositOutsideHours: user.allowDepositOutsideHours, allowWithdrawalOutsideHours: user.allowWithdrawalOutsideHours, allowMultipleWithdrawals: user.allowMultipleWithdrawals });
 });
 
 app.delete('/api/admin/users/:userId', verifyToken, async (req, res) => {

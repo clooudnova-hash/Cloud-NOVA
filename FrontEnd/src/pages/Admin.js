@@ -311,7 +311,7 @@ export default function Admin() {
   const updateTimeAccess = async user => {
     setLoading(true);
     const access = timeAccess[user.id] || {};
-    const res = await api('/api/admin/users/time-access', { method: 'POST', body: { userId: user.id, allowDepositOutsideHours: Boolean(access.deposit ?? user.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(access.withdrawal ?? user.allowWithdrawalOutsideHours) } });
+    const res = await api('/api/admin/users/time-access', { method: 'POST', body: { userId: user.id, allowDepositOutsideHours: Boolean(access.deposit ?? user.allowDepositOutsideHours), allowWithdrawalOutsideHours: Boolean(access.withdrawal ?? user.allowWithdrawalOutsideHours), allowMultipleWithdrawals: Boolean(access.multipleWithdrawals ?? user.allowMultipleWithdrawals) } });
     setMsg(res.message || res.error);
     await loadAll();
     setLoading(false);
@@ -370,7 +370,7 @@ export default function Admin() {
   const tabs = ['dashboard', 'transactions', 'users', 'teams', 'bonus', 'winner', 'offers'];
 
   return (
-    <div className="premium-page" style={{ minHeight: '100vh', background: '#080c1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', padding: '0 0 40px' }}>
+    <div className="premium-page admin-page" style={{ minHeight: '100vh', background: '#080c1a', color: '#e2e8f0', fontFamily: 'Inter, sans-serif', padding: '0 0 40px' }}>
 
       {proofPreview && (
         <div role="dialog" aria-modal="true" aria-label="Payment proof preview" onClick={() => setProofPreview(null)} style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.82)' }}>
@@ -910,7 +910,8 @@ export default function Admin() {
                       <div style={{ display: 'grid', gap: '5px' }}>
                         <label style={{ fontSize: '11px', color: '#cbd5e1' }}><input type="checkbox" checked={Boolean(timeAccess[u.id]?.deposit ?? u.allowDepositOutsideHours)} onChange={e => setTimeAccess(prev => ({ ...prev, [u.id]: { ...(prev[u.id] || {}), deposit: e.target.checked } }))} /> Allow deposit anytime</label>
                         <label style={{ fontSize: '11px', color: '#cbd5e1' }}><input type="checkbox" checked={Boolean(timeAccess[u.id]?.withdrawal ?? u.allowWithdrawalOutsideHours)} onChange={e => setTimeAccess(prev => ({ ...prev, [u.id]: { ...(prev[u.id] || {}), withdrawal: e.target.checked } }))} /> Allow withdrawal anytime</label>
-                        <button onClick={() => updateTimeAccess(u)} disabled={loading} style={btn('#0ea5e9')}>Save Time Access</button>
+                        <label style={{ fontSize: '11px', color: '#cbd5e1' }}><input type="checkbox" checked={Boolean(timeAccess[u.id]?.multipleWithdrawals ?? u.allowMultipleWithdrawals)} onChange={e => setTimeAccess(prev => ({ ...prev, [u.id]: { ...(prev[u.id] || {}), multipleWithdrawals: e.target.checked } }))} /> Allow multiple withdrawals daily</label>
+                        <button onClick={() => updateTimeAccess(u)} disabled={loading} style={btn('#0ea5e9')}>Save Withdrawal Access</button>
                       </div>
                     </div>
 

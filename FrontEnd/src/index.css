@@ -653,6 +653,16 @@ body {
     radial-gradient(circle at 92% 18%, rgba(0, 210, 255, 0.1), transparent 26%) !important;
 }
 
+.premium-page.auth-page {
+  background: linear-gradient(135deg, #020510 0%, #0a0f2e 50%, #020510 100%) !important;
+}
+
+.premium-page.admin-page {
+  background-color: #080c1a !important;
+  background-image: radial-gradient(circle at 8% 0%, rgba(0, 180, 255, 0.08), transparent 28%), radial-gradient(circle at 92% 18%, rgba(124, 58, 237, 0.08), transparent 26%) !important;
+  color: #e2e8f0 !important;
+}
+
 .premium-page > header,
 .premium-page > .app-header {
   background: linear-gradient(135deg, var(--nova-navy), #153393 62%, #087f9b) !important;
