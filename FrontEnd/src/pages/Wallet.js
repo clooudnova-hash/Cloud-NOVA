@@ -16,7 +16,7 @@ const Wallet = () => {
   const [transactionNotice, setTransactionNotice] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [balance, setBalance] = useState(null);
-  const [withdrawalEligibility, setWithdrawalEligibility] = useState({ allowed: false, message: 'Complete a deposit and buy a mining machine before requesting a withdrawal.' });
+  const [withdrawalEligibility, setWithdrawalEligibility] = useState({ allowed: false, message: 'Buy a mining machine and maintain at least $3.00 available balance before requesting a withdrawal.' });
   const [timeAccess, setTimeAccess] = useState({ allowDepositOutsideHours: false, allowWithdrawalOutsideHours: false });
 
   const adminDetails = {

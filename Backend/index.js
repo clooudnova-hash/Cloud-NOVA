@@ -423,11 +423,10 @@ const getWithdrawalEligibility = userId => {
   const hasMinimumBalance = Number(wallet?.balance || 0) >= MIN_WITHDRAWAL_AMOUNT;
   const hasWithdrawalToday = userTransactions.some(transaction => transaction.type === 'withdrawal' && getPakistanDateKey(transaction.date) === getPakistanDateKey(new Date()));
   let message = '';
-  if (!hasCompletedDeposit) message = 'Complete your first deposit before requesting a withdrawal.';
-  else if (!hasPurchasedMachine) message = 'Buy a mining machine before requesting a withdrawal.';
+  if (!hasPurchasedMachine) message = 'Buy a mining machine before requesting a withdrawal.';
   else if (!hasMinimumBalance) message = `A minimum available balance of $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)} is required to withdraw.`;
   else if (hasWithdrawalToday) message = 'You can submit only one withdrawal request per day.';
-  return { allowed: hasCompletedDeposit && hasPurchasedMachine && hasMinimumBalance && !hasWithdrawalToday, message };
+  return { allowed: hasPurchasedMachine && hasMinimumBalance && !hasWithdrawalToday, message };
 };
 
 const creditReferralRewards = (deposit) => {
