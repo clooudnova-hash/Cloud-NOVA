@@ -480,7 +480,7 @@ app.post('/api/auth/send-otp', (req, res) => {
   return res.status(200).json({ success: true, message: 'Proceed to register.' });
 });
 
-app.post('/api/auth/signup', (req, res) => {
+app.post('/api/auth/signup', async (req, res) => {
   try {
     const { fullName, email, password, referralCode, otpCode } = req.body;
     if (!fullName || !email || !password || !otpCode) return res.status(400).json({ message: 'Missing core signup fields!' });
@@ -503,6 +503,7 @@ app.post('/api/auth/signup', (req, res) => {
     const clearIdx = emailOtpCache.findIndex(c => c.email === normalizedEmail);
     if (clearIdx > -1) emailOtpCache.splice(clearIdx, 1);
 
+    await persistState();
     return res.status(201).json({ success: true, message: 'Account created successfully.' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -664,6 +665,7 @@ app.get('/api/mining/offers', verifyToken, (req, res) => {
 });
 
 app.get('/api/admin/machine-offers', verifyToken, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     return res.status(200).json(limitedMachineOffers.map(offer => ({
       ...offer,
@@ -673,7 +675,8 @@ app.get('/api/admin/machine-offers', verifyToken, (req, res) => {
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/admin/machine-offers', verifyToken, (req, res) => {
+app.post('/api/admin/machine-offers', verifyToken, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     const { title, tier, price, dailyIncome, durationDays, hashrate, stock, startAt, endAt, isActive } = req.body;
     if (!title || !tier || !Number.isFinite(Number(price)) || !Number.isFinite(Number(dailyIncome)) || !Number.isFinite(Number(durationDays)) || !Number.isFinite(Number(hashrate)) || !Number.isFinite(Number(stock))) {
@@ -703,22 +706,23 @@ app.post('/api/admin/machine-offers', verifyToken, (req, res) => {
     };
 
     limitedMachineOffers.push(offer);
-  persistState();
+  await persistState();
     return res.status(201).json({ success: true, message: 'Limited machine offer created.', offer });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.delete('/api/admin/machine-offers/:id', verifyToken, (req, res) => {
+app.delete('/api/admin/machine-offers/:id', verifyToken, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     const index = limitedMachineOffers.findIndex(offer => offer.id === req.params.id);
     if (index === -1) return res.status(404).json({ message: 'Offer not found.' });
     limitedMachineOffers.splice(index, 1);
-    persistState();
+    await persistState();
     return res.status(200).json({ success: true, message: 'Offer removed.' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/plans/lease', verifyToken, (req, res) => {
+app.post('/api/plans/lease', verifyToken, async (req, res) => {
   try {
     if (req.currentUser.paused) return res.status(403).json({ message: 'Mining is paused for this account.' });
     const { tier, offerId } = req.body;
@@ -759,12 +763,12 @@ app.post('/api/plans/lease', verifyToken, (req, res) => {
     }
 
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: `Lease ${selectedOffer ? selectedOffer.tier : tier}`, amount: plan.cost, network: 'Internal Server', txid: contract.id, status: 'completed', date: startDate.toISOString(), contractId: contract.id });
-    persistState();
+    await persistState();
     return res.status(200).json({ success: true, contract, message: selectedOffer ? `${selectedOffer.title} machine activated successfully.` : 'Mining contract activated successfully.' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/auth/change-password', verifyToken, (req, res) => {
+app.post('/api/auth/change-password', verifyToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return res.status(400).json({ message: 'Both current and new password are required.' });
@@ -774,11 +778,12 @@ app.post('/api/auth/change-password', verifyToken, (req, res) => {
     const storedPassword = user.password || user.password_hash;
     if (!storedPassword || !bcrypt.compareSync(currentPassword, storedPassword)) return res.status(400).json({ message: 'Current password is incorrect.' });
     user.password = bcrypt.hashSync(newPassword, 10);
+    await persistState();
     return res.status(200).json({ success: true, message: 'Password updated successfully.' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/bonus/claim', verifyToken, (req, res) => {
+app.post('/api/bonus/claim', verifyToken, async (req, res) => {
   try {
     const { code } = req.body;
     const user = req.currentUser;
@@ -819,6 +824,7 @@ app.post('/api/bonus/claim', verifyToken, (req, res) => {
     user.promoLockedUntil = null;
     bonusClaims.push({ userId: user.id, code: voucher.code, amount: voucher.bonus, date: new Date().toISOString() });
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: user.id, type: 'Promo Code Reward', amount: voucher.bonus, network: 'Admin Promo Code', txid: voucher.code, status: 'completed', date: new Date().toISOString() });
+    await persistState();
     return res.status(200).json({ success: true, bonus: voucher.bonus, message: 'Voucher applied successfully!' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -833,10 +839,11 @@ app.get('/api/admin/deposit-settings', verifyToken, (req, res) => {
   return res.status(200).json({ autoApproveDeposits: Boolean(depositSettings[0]?.autoApproveDeposits), manualApproval: !depositSettings[0]?.autoApproveDeposits });
 });
 
-app.put('/api/admin/deposit-settings', verifyToken, (req, res) => {
+app.put('/api/admin/deposit-settings', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const autoApproveDeposits = Boolean(req.body.autoApproveDeposits);
   depositSettings.splice(0, 1, { autoApproveDeposits });
+  await persistState();
   return res.status(200).json({ success: true, message: autoApproveDeposits ? 'Auto approval enabled for new deposits.' : 'Manual approval enabled for new deposits.', autoApproveDeposits, manualApproval: !autoApproveDeposits });
 });
 
@@ -946,7 +953,7 @@ app.get('/api/admin/users', verifyToken, (req, res) => {
   return res.status(200).json(result);
 });
 
-app.post('/api/admin/users/create', verifyToken, (req, res) => {
+app.post('/api/admin/users/create', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     const { fullName, email, password, referralCode } = req.body;
@@ -960,21 +967,23 @@ app.post('/api/admin/users/create', verifyToken, (req, res) => {
     const username = users.some(user => user.username === usernameBase) ? `${usernameBase}_${Math.random().toString(36).substring(2, 6)}` : usernameBase;
     users.push({ id: newUserId, username, fullName: String(fullName).trim(), email: normalizedEmail, password: bcrypt.hashSync(password, 10), role: 'user', myReferralCode: Math.random().toString(36).substring(2, 8).toUpperCase(), referredBy: upline ? upline.id : '', vipLevel: 'Bronze', paused: false, promoFailedAttempts: 0, promoLockedUntil: null });
     wallets.push({ userId: newUserId, balance: 0, baseHashrate: 10.0, effectiveHashrate: 10.0, minersCount: 0 });
+    await persistState();
     return res.status(201).json({ success: true, message: `User created. Sponsor referral ${upline ? upline.myReferralCode : 'not assigned'}; user's own referral code is ${users[users.length - 1].myReferralCode}.` });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/admin/users/reset-password', verifyToken, (req, res) => {
+app.post('/api/admin/users/reset-password', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const user = users.find(item => item.id === req.body.userId);
   const newPassword = String(req.body.newPassword || '');
   if (!user) return res.status(404).json({ message: 'User not found.' });
   if (newPassword.length < 6) return res.status(400).json({ message: 'New password must be at least 6 characters.' });
   user.password = bcrypt.hashSync(newPassword, 10);
+  await persistState();
   return res.status(200).json({ success: true, message: `Password reset for ${user.username}.` });
 });
 
-app.post('/api/admin/users/add-machine', verifyToken, (req, res) => {
+app.post('/api/admin/users/add-machine', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     const { userId, tier } = req.body;
@@ -990,20 +999,22 @@ app.post('/api/admin/users/add-machine', verifyToken, (req, res) => {
     miningContracts.push(contract);
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId, type: `Admin Machine Grant - ${tier}`, amount: 0.01, network: 'Admin Panel', txid: contract.id, status: 'completed', date: startDate.toISOString(), contractId: contract.id });
     syncMiningWallet(userId);
+    await persistState();
     return res.status(201).json({ success: true, contract, message: `${tier} machine added to ${user.username}.` });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
-app.delete('/api/admin/users/:userId/machines/:machineId', verifyToken, (req, res) => {
+app.delete('/api/admin/users/:userId/machines/:machineId', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const machineIndex = miningContracts.findIndex(contract => contract.id === req.params.machineId && contract.userId === req.params.userId);
   if (machineIndex === -1) return res.status(404).json({ message: 'Machine not found for this user.' });
   const [removedMachine] = miningContracts.splice(machineIndex, 1);
   syncMiningWallet(req.params.userId);
+  await persistState();
   return res.status(200).json({ success: true, message: `${removedMachine.tier} machine removed.`, machineId: removedMachine.id });
 });
 
-app.post('/api/admin/users/set-referral', verifyToken, (req, res) => {
+app.post('/api/admin/users/set-referral', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const user = users.find(item => item.id === req.body.userId);
   const referralCode = String(req.body.referralCode || '').trim();
@@ -1016,29 +1027,31 @@ app.post('/api/admin/users/set-referral', verifyToken, (req, res) => {
     ancestor = users.find(item => item.id === ancestor.referredBy);
   }
   user.referredBy = upline.id;
+  await persistState();
   return res.status(200).json({ success: true, message: `Referral assigned to ${user.username}.` });
 });
 
-app.post('/api/admin/users/pause', verifyToken, (req, res) => {
+app.post('/api/admin/users/pause', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const user = users.find(item => item.id === req.body.userId);
   if (!user) return res.status(404).json({ message: 'User not found' });
   if (user.id === req.user.id) return res.status(400).json({ message: 'You cannot pause the current admin account.' });
   user.paused = req.body.paused === undefined ? !user.paused : Boolean(req.body.paused);
-  persistState();
+  await persistState();
   return res.status(200).json({ success: true, paused: user.paused, message: user.paused ? 'User paused.' : 'User resumed.' });
 });
 
-app.post('/api/admin/users/time-access', verifyToken, (req, res) => {
+app.post('/api/admin/users/time-access', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const user = users.find(item => item.id === req.body.userId);
   if (!user) return res.status(404).json({ message: 'User not found' });
   user.allowDepositOutsideHours = Boolean(req.body.allowDepositOutsideHours);
   user.allowWithdrawalOutsideHours = Boolean(req.body.allowWithdrawalOutsideHours);
+  await persistState();
   return res.status(200).json({ success: true, message: `Time access updated for ${user.username}.`, allowDepositOutsideHours: user.allowDepositOutsideHours, allowWithdrawalOutsideHours: user.allowWithdrawalOutsideHours });
 });
 
-app.delete('/api/admin/users/:userId', verifyToken, (req, res) => {
+app.delete('/api/admin/users/:userId', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   if (req.params.userId === req.user.id) return res.status(400).json({ message: 'You cannot remove the current admin account.' });
   const index = users.findIndex(item => item.id === req.params.userId);
@@ -1048,11 +1061,12 @@ app.delete('/api/admin/users/:userId', verifyToken, (req, res) => {
   if (walletIndex !== -1) wallets.splice(walletIndex, 1);
   for (let index = transactions.length - 1; index >= 0; index -= 1) if (transactions[index].userId === req.params.userId) transactions.splice(index, 1);
   for (let index = bonusClaims.length - 1; index >= 0; index -= 1) if (bonusClaims[index].userId === req.params.userId) bonusClaims.splice(index, 1);
+  await persistState();
   return res.status(200).json({ success: true, message: 'User removed.' });
 });
 
 // Admin: adjust user balance (credit or debit)
-app.post('/api/admin/users/adjust-balance', verifyToken, (req, res) => {
+app.post('/api/admin/users/adjust-balance', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     const { userId, amount, note } = req.body;
@@ -1066,12 +1080,13 @@ app.post('/api/admin/users/adjust-balance', verifyToken, (req, res) => {
     if (newBalance < 0) return res.status(400).json({ message: 'Balance cannot go below zero' });
     wallet.balance = newBalance;
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId, type: adj >= 0 ? 'Admin Credit' : 'Admin Debit', amount: Math.abs(adj), network: 'Admin Panel', txid: note || 'Manual adjustment', status: 'completed', date: new Date().toISOString() });
+    await persistState();
     return res.status(200).json({ success: true, message: `Balance updated to $${newBalance.toFixed(2)}`, newBalance });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
 // Admin: set user VIP level
-app.post('/api/admin/users/set-vip', verifyToken, (req, res) => {
+app.post('/api/admin/users/set-vip', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     const { userId, vipLevel } = req.body;
@@ -1081,6 +1096,7 @@ app.post('/api/admin/users/set-vip', verifyToken, (req, res) => {
     if (vipLevel !== 'Auto' && !['Bronze', 'LV1', 'LV2', 'LV3'].includes(vipLevel)) return res.status(400).json({ message: 'Invalid VIP level.' });
     user.vipOverride = vipLevel === 'Auto' ? null : vipLevel;
     const vip = syncVipLevel(user);
+    await persistState();
     return res.status(200).json({ success: true, message: vipLevel === 'Auto' ? `VIP level returned to automatic mode: ${vip.vipLevel}` : `VIP level manually set to ${vip.vipLevel}`, ...vip });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
@@ -1100,7 +1116,7 @@ app.get('/api/admin/weekly-winner', verifyToken, (req, res) => {
   return res.status(200).json({ active: Boolean(winner.active), depositorName: winner.depositorName || '', depositorAmount: winner.depositorAmount ?? 0, withdrawalName: winner.withdrawalName || '', withdrawalAmount: winner.withdrawalAmount ?? 0, expiresAt: winner.expiresAt || '' });
 });
 
-app.put('/api/admin/weekly-winner', verifyToken, (req, res) => {
+app.put('/api/admin/weekly-winner', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const depositorName = String(req.body.depositorName || '').trim();
   const depositorAmount = Number(req.body.depositorAmount);
@@ -1111,17 +1127,19 @@ app.put('/api/admin/weekly-winner', verifyToken, (req, res) => {
   if (!depositorName || !withdrawalName || !Number.isFinite(depositorAmount) || depositorAmount < 0 || !Number.isFinite(withdrawalAmount) || withdrawalAmount < 0 || !Number.isFinite(expiresAt.getTime()) || expiresAt <= new Date()) return res.status(400).json({ message: 'Both names, amounts, and a future Pakistan-time expiry are required.' });
   const settings = { active: true, depositorName, depositorAmount, withdrawalName, withdrawalAmount, expiresAt: expiresAt.toISOString() };
   weeklyWinnerSettings.splice(0, 1, settings);
+  await persistState();
   return res.status(200).json({ success: true, message: 'Weekly highlights published successfully.', ...settings });
 });
 
-app.delete('/api/admin/weekly-winner', verifyToken, (req, res) => {
+app.delete('/api/admin/weekly-winner', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   weeklyWinnerSettings.splice(0, 1, { ...(weeklyWinnerSettings[0] || {}), active: false });
+  await persistState();
   return res.status(200).json({ success: true, message: 'Weekly highlights removed from Home.' });
 });
 
 // Admin: add bonus code
-app.post('/api/admin/bonus/add', verifyToken, (req, res) => {
+app.post('/api/admin/bonus/add', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   try {
     const { code, bonus, startsAt, expiresAt, maxUsers, allowedUserIds } = req.body;
@@ -1132,26 +1150,29 @@ app.post('/api/admin/bonus/add', verifyToken, (req, res) => {
     if (!exactCode || !Number.isFinite(reward) || reward <= 0 || !Number.isInteger(userLimit) || userLimit < 1) return res.status(400).json({ message: 'Enter a valid code, reward, and user limit.' });
     if (couponVouchers.find(c => c.code === exactCode)) return res.status(400).json({ message: 'Code already exists' });
     couponVouchers.push({ code: exactCode, bonus: reward, maxUsers: userLimit, allowedUserIds: restrictedUsers, active: true });
+    await persistState();
     return res.status(201).json({ success: true, message: 'Bonus code added!' });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
 
 // Admin: toggle bonus code active/inactive
-app.post('/api/admin/bonus/toggle', verifyToken, (req, res) => {
+app.post('/api/admin/bonus/toggle', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const { code } = req.body;
   const voucher = couponVouchers.find(c => c.code === code);
   if (!voucher) return res.status(404).json({ message: 'Code not found' });
   voucher.active = !voucher.active;
+  await persistState();
   return res.status(200).json({ success: true, active: voucher.active });
 });
 
 // Admin: delete bonus code
-app.delete('/api/admin/bonus/:code', verifyToken, (req, res) => {
+app.delete('/api/admin/bonus/:code', verifyToken, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const idx = couponVouchers.findIndex(c => c.code === req.params.code);
   if (idx === -1) return res.status(404).json({ message: 'Code not found' });
   couponVouchers.splice(idx, 1);
+  await persistState();
   return res.status(200).json({ success: true, message: 'Deleted' });
 });
 
@@ -1186,7 +1207,7 @@ const getTaskEligibility = (user, taskId) => {
 };
 
 // User: submit a task reward claim
-app.post('/api/tasks/claim', verifyToken, (req, res) => {
+app.post('/api/tasks/claim', verifyToken, async (req, res) => {
   try {
     const { taskId, taskName } = req.body;
     if (taskId == null || !taskName) return res.status(400).json({ message: 'taskId and taskName are required.' });
@@ -1215,6 +1236,7 @@ app.post('/api/tasks/claim', verifyToken, (req, res) => {
     taskClaims.push(claim);
     wallet.balance = Number((wallet.balance + reward).toFixed(4));
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: user.id, type: 'Task Reward', amount: reward, network: 'Automatic Task Claim', txid: claim.id, status: 'completed', date: claim.date, taskId: tid });
+    await persistState();
     return res.status(201).json({ success: true, reward, message: `Task completed and approved. $${reward.toFixed(2)} added to your wallet.` });
   } catch (err) { return res.status(500).json({ error: err.message }); }
 });
