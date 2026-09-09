@@ -371,6 +371,12 @@ const isOfferActive = offer => {
 
 const getActiveMachineOffers = () => limitedMachineOffers.filter(offer => isOfferActive(offer));
 
+const getUserPlanCount = (userId, tier, includeAdminGranted = true) => miningContracts.filter(contract =>
+  contract.userId === userId &&
+  contract.tier === tier &&
+  (includeAdminGranted || !contract.grantedByAdmin)
+).length;
+
 const getMiningSummary = (userId) => miningContracts
   .filter(contract => contract.userId === userId)
   .map(contract => ({
@@ -401,7 +407,11 @@ const getIncomeSummary = (userId) => {
 const syncMiningWallet = (userId) => {
   const wallet = wallets.find(item => item.userId === userId);
   if (!wallet) return;
-  const activeContracts = miningContracts.filter(contract => contract.userId === userId && new Date(contract.endDate) > new Date());
+  const activeContracts = miningContracts.filter(contract =>
+    contract.userId === userId &&
+    !contract.removedByAdmin &&
+    new Date(contract.endDate) > new Date()
+  );
   wallet.minersCount = activeContracts.length;
   wallet.effectiveHashrate = Number((wallet.baseHashrate + activeContracts.reduce((sum, contract) => sum + contract.hashrate, 0)).toFixed(4));
 };
@@ -559,11 +569,11 @@ app.post('/api/mining/collect', verifyToken, async (req, res) => {
     const wallet = wallets.find(item => item.userId === req.user.id);
     syncMiningWallet(req.user.id);
     const earnings = [];
-    miningContracts.filter(contract => contract.userId === req.user.id).forEach(contract => {
+    miningContracts.filter(contract => contract.userId === req.user.id && new Date(contract.endDate) > new Date(contract.lastCollectedAt || contract.startDate)).forEach(contract => {
       const end = new Date(contract.endDate);
       const collectionEnd = end < now ? end : now;
-      const lastCollected = new Date(contract.lastCollectedAt);
-      const availableDays = Math.floor((collectionEnd - lastCollected) / 86400000);
+      const lastCollected = new Date(contract.lastCollectedAt || contract.startDate);
+      const availableDays = Math.max(0, Math.floor((collectionEnd - lastCollected) / 86400000));
       if (availableDays <= 0) return;
       const amount = Number((availableDays * contract.dailyIncome).toFixed(4));
       contract.lastCollectedAt = collectionEnd.toISOString();
@@ -747,7 +757,7 @@ app.post('/api/plans/lease', verifyToken, async (req, res) => {
 
     if (!plan) return res.status(400).json({ message: 'Invalid network tier selection' });
     syncMiningWallet(req.user.id);
-    const purchasedCount = miningContracts.filter(contract => contract.userId === req.user.id && contract.tier === (selectedOffer ? selectedOffer.tier : tier)).length;
+    const purchasedCount = getUserPlanCount(req.user.id, selectedOffer ? selectedOffer.tier : tier, false);
     if (purchasedCount >= (plan.limit || 1)) return res.status(400).json({ message: `${selectedOffer ? selectedOffer.title : tier} plan purchase limit reached.` });
 
     if (wallet.balance < plan.cost) return res.status(400).json({ message: 'Insufficient resources account balance' });
@@ -992,8 +1002,6 @@ app.post('/api/admin/users/add-machine', verifyToken, async (req, res) => {
     const user = users.find(item => item.id === userId);
     const plan = MINING_PLANS[tier];
     if (!user || !plan) return res.status(400).json({ message: 'Valid user and mining plan are required.' });
-    const purchasedCount = miningContracts.filter(contract => contract.userId === userId && contract.tier === tier).length;
-    if (purchasedCount >= plan.limit) return res.status(400).json({ message: `${tier} plan purchase limit reached.` });
 
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + plan.durationDays * 86400000);
@@ -1010,10 +1018,12 @@ app.delete('/api/admin/users/:userId/machines/:machineId', verifyToken, async (r
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access Denied' });
   const machineIndex = miningContracts.findIndex(contract => contract.id === req.params.machineId && contract.userId === req.params.userId);
   if (machineIndex === -1) return res.status(404).json({ message: 'Machine not found for this user.' });
-  const [removedMachine] = miningContracts.splice(machineIndex, 1);
+  const removedMachine = miningContracts[machineIndex];
+  removedMachine.removedByAdmin = true;
+  removedMachine.removedAt = new Date().toISOString();
   syncMiningWallet(req.params.userId);
   await persistState();
-  return res.status(200).json({ success: true, message: `${removedMachine.tier} machine removed.`, machineId: removedMachine.id });
+  return res.status(200).json({ success: true, message: `${removedMachine.tier} machine removed. Remaining daily income stays active until the original end date.`, machineId: removedMachine.id });
 });
 
 app.post('/api/admin/users/set-referral', verifyToken, async (req, res) => {
