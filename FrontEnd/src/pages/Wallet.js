@@ -20,7 +20,7 @@ const Wallet = () => {
   const [timeAccess, setTimeAccess] = useState({ allowDepositOutsideHours: false, allowWithdrawalOutsideHours: false });
 
   const adminDetails = {
-    EasyPaisa: { name: 'HAMZA ALI', number: '0314-0033710' },
+    EasyPaisa: { name: 'Ahmed Ali Hussain', number: '03196022032' },
     JazzCash: { name: 'HAMZA ALI', number: '0314-0033710' },
     BankTransfer: { name: 'HAMZA ALI', number: '0314-0033710', bank: 'Local Bank' }
   };
