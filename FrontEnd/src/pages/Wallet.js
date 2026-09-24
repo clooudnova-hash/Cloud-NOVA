@@ -26,10 +26,10 @@ const Wallet = () => {
   };
 
   const parsedAmount = Number.parseFloat(amount || '0');
-  const depositTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.08).toFixed(4)) : 0;
+  const depositTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.04).toFixed(4)) : 0;
   const totalToPay = Number.isFinite(parsedAmount) ? Number((parsedAmount + depositTax).toFixed(4)) : 0;
   const netReceived = Number.isFinite(parsedAmount) ? Number(parsedAmount.toFixed(4)) : 0;
-  const withdrawalTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.15).toFixed(4)) : 0;
+  const withdrawalTax = Number.isFinite(parsedAmount) ? Number((parsedAmount * 0.10).toFixed(4)) : 0;
   const withdrawalReceived = Number.isFinite(parsedAmount) ? Number((parsedAmount - withdrawalTax).toFixed(4)) : 0;
 
   const token = localStorage.getItem('token');
@@ -60,13 +60,13 @@ const Wallet = () => {
     const pakistanTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
     const hour = pakistanTime.getHours();
     const weekday = pakistanTime.getDay();
-    return hour >= 10 && hour < 21 && (!withdrawalsOnly || (weekday >= 1 && weekday <= 5));
+    return hour >= 10 && hour < (withdrawalsOnly ? 13 : 24) && (!withdrawalsOnly || (weekday >= 1 && weekday <= 5));
   };
 
   const showBusinessHours = withdrawalsOnly => {
     setBusinessHoursNotice(withdrawalsOnly
-      ? 'Withdrawals are closed. Withdrawal hours are Monday to Friday, 10:00 AM to 09:00 PM Pakistan time.'
-      : 'Deposits are closed. Deposit hours are every day, 10:00 AM to 09:00 PM Pakistan time.');
+      ? 'Withdrawals are closed. Withdrawal hours are Monday to Friday, 10:00 AM to 01:00 PM Pakistan time.'
+      : 'Deposits are closed. Deposit hours are every day, 10:00 AM to 12:00 AM Pakistan time.');
   };
 
   const showTransactionNotice = (type, message) => {
@@ -98,12 +98,12 @@ const Wallet = () => {
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
+    if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 3 || parseFloat(amount) > 3) { showTransactionNotice('rejected', 'Withdrawal amount must be exactly $3.00.'); return; }
     if (!withdrawalEligibility.allowed) { showTransactionNotice('rejected', withdrawalEligibility.message); return; }
     if (!timeAccess.allowWithdrawalOutsideHours && !isWithinBusinessHours(true)) { showBusinessHours(true); return; }
     if (!token) { showMsg('Please login first.', 'error'); return; }
     if (Number.parseFloat(balance || '0') <= 0) { showTransactionNotice('rejected', 'Your wallet balance is $0.00. Add funds before requesting a withdrawal.'); return; }
     if (!amount || !accountNumber || !accountName) { showMsg('Please fill all fields.', 'error'); return; }
-    if (!Number.isFinite(parseFloat(amount)) || parseFloat(amount) < 3) { showMsg('Minimum withdrawal amount is $3.00.', 'error'); return; }
     if (parseFloat(amount) > Number.parseFloat(balance || '0')) { showTransactionNotice('rejected', 'Withdrawal amount cannot be greater than your available balance.'); return; }
     setLoading(true);
     try {
@@ -162,8 +162,8 @@ const Wallet = () => {
 
       {/* Timings */}
       <div className="wallet-hours-card mx-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-[10px] text-amber-700 font-semibold shadow-sm">
-        <p>🕒 Deposit Hours: 10:00 AM - 09:00 PM (Everyday)</p>
-        <p className="mt-0.5">📆 Withdrawal Hours: 10:00 AM - 09:00 PM (Monday to Friday)</p>
+        <p>🕒 Deposit Hours: 10:00 AM - 12:00 AM (Everyday)</p>
+        <p className="mt-0.5">📆 Withdrawal Hours: 10:00 AM - 01:00 PM (Monday to Friday)</p>
         {!withdrawalEligibility.allowed && <p className="mt-1 text-red-600">Withdrawal unavailable: {withdrawalEligibility.message}</p>}
       </div>
 
@@ -212,7 +212,7 @@ const Wallet = () => {
               <input type="number" min="1" step="0.01" placeholder="Minimum $1.00" value={amount} onChange={e => setAmount(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none focus:border-blue-500 transition" />
               <div className="mt-2 flex items-center justify-between text-[10px] font-bold rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-amber-700">
-                <span>8% tax</span>
+                <span>4% tax</span>
                 <span>-${depositTax.toFixed(2)}</span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[10px] font-bold rounded-lg bg-sky-50 border border-sky-200 px-2.5 py-1.5 text-sky-700">
@@ -254,11 +254,11 @@ const Wallet = () => {
         {activeTab === 'withdraw' && (
           <form onSubmit={handleWithdraw} className="space-y-4">
             <div>
-              <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($) · Minimum $3.00</label>
-              <input type="number" min="3" step="0.01" placeholder="Minimum $3.00" value={amount} onChange={e => setAmount(e.target.value)}
+              <label className="text-[10px] text-slate-400 font-bold block mb-1">Amount ($) · Exactly $3.00</label>
+              <input type="number" min="3" step="0.01" placeholder="Exactly $3.00" value={amount} onChange={e => setAmount(e.target.value)}
                 className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 focus:outline-none transition" />
               <div className="mt-2 flex items-center justify-between text-[10px] font-bold rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-amber-700">
-                <span>15% tax</span>
+                <span>10% tax</span>
                 <span>-${withdrawalTax.toFixed(2)}</span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[10px] font-bold rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-red-700">

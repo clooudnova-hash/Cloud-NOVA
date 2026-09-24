@@ -261,16 +261,17 @@ const PROMO_MAX_FAILED_ATTEMPTS = 3;
 const PROMO_LOCK_DURATION_MS = 60 * 60 * 1000;
 const MIN_DEPOSIT_AMOUNT = 1;
 const MIN_WITHDRAWAL_AMOUNT = 3;
-const DEPOSIT_TAX_RATE = 0.08;
-const WITHDRAWAL_TAX_RATE = 0.15;
+const MAX_WITHDRAWAL_AMOUNT = 3;
+const DEPOSIT_TAX_RATE = 0.04;
+const WITHDRAWAL_TAX_RATE = 0.10;
 const getPakistanBusinessTime = () => {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Karachi', weekday: 'short', hour: 'numeric', hour12: false }).formatToParts(new Date());
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Karachi', weekday: 'short', hour: 'numeric', hour12: false, hourCycle: 'h23' }).formatToParts(new Date());
   return { weekday: parts.find(part => part.type === 'weekday')?.value, hour: Number(parts.find(part => part.type === 'hour')?.value) };
 };
 const isWithinBusinessHours = weekdaysOnly => {
   const { weekday, hour } = getPakistanBusinessTime();
   const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekday);
-  return hour >= 10 && hour < 21 && (!weekdaysOnly || isWeekday);
+  return hour >= 10 && hour < (weekdaysOnly ? 13 : 24) && (!weekdaysOnly || isWeekday);
 };
 const VIP_THRESHOLDS = [
   { level: 'LV3', minimumDeposit: 1000 },
@@ -590,7 +591,7 @@ app.post('/api/mining/collect', verifyToken, async (req, res) => {
 
 app.post('/api/wallet/deposit', verifyToken, async (req, res) => {
   try {
-    if (!isWithinBusinessHours(false) && !req.currentUser.allowDepositOutsideHours) return res.status(400).json({ message: 'Deposits are accepted from 10:00 AM to 09:00 PM Pakistan time.' });
+    if (!isWithinBusinessHours(false) && !req.currentUser.allowDepositOutsideHours) return res.status(400).json({ message: 'Deposits are accepted from 10:00 AM to 12:00 AM Pakistan time.' });
     const { txid, network, amount, proofImage } = req.body;
     const depositAmount = parseFloat(amount);
     if (network !== 'EasyPaisa') return res.status(400).json({ message: 'Deposits are available only through EasyPaisa.' });
@@ -634,14 +635,14 @@ app.post('/api/wallet/withdraw', verifyToken, async (req, res) => {
   try {
     const withdrawalEligibility = getWithdrawalEligibility(req.user.id);
     if (!withdrawalEligibility.allowed) return res.status(400).json({ message: withdrawalEligibility.message });
-    if (!isWithinBusinessHours(true) && !req.currentUser.allowWithdrawalOutsideHours) return res.status(400).json({ message: 'Withdrawals are accepted Monday to Friday, 10:00 AM to 09:00 PM Pakistan time.' });
+    if (!isWithinBusinessHours(true) && !req.currentUser.allowWithdrawalOutsideHours) return res.status(400).json({ message: 'Withdrawals are accepted Monday to Friday, 10:00 AM to 01:00 PM Pakistan time.' });
     const { address, accountName, bankName, network, amount } = req.body;
     const wallet = wallets.find(w => w.userId === req.user.id);
     const totalDeduction = parseFloat(amount);
     const taxAmount = Number((totalDeduction * WITHDRAWAL_TAX_RATE).toFixed(4));
     const netAmount = Number((totalDeduction - taxAmount).toFixed(4));
     const reserved = transactions.filter(t => t.userId === req.user.id && t.type === 'withdrawal' && t.status === 'pending').reduce((sum, t) => sum + (t.amount + (t.taxAmount || 0)), 0);
-    if (!address || !accountName || (network === 'BankTransfer' && !bankName) || !['EasyPaisa', 'JazzCash', 'BankTransfer'].includes(network) || !Number.isFinite(totalDeduction) || totalDeduction < MIN_WITHDRAWAL_AMOUNT) return res.status(400).json({ message: `Enter valid withdrawal details. Minimum withdrawal amount is $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)}.` });
+    if (!address || !accountName || (network === 'BankTransfer' && !bankName) || !['EasyPaisa', 'JazzCash', 'BankTransfer'].includes(network) || !Number.isFinite(totalDeduction) || totalDeduction < MIN_WITHDRAWAL_AMOUNT || totalDeduction > MAX_WITHDRAWAL_AMOUNT) return res.status(400).json({ message: `Enter valid withdrawal details. Withdrawal amount must be exactly $${MIN_WITHDRAWAL_AMOUNT.toFixed(2)}.` });
     if (wallet.balance - reserved < totalDeduction) return res.status(400).json({ message: 'Insufficient available balance' });
 
     transactions.push({ id: 'tx_' + Math.random().toString(36).substring(2, 9), userId: req.user.id, type: 'withdrawal', amount: netAmount, taxAmount, totalDeduction, network, txid: address, accountName: accountName.trim(), bankName: bankName ? bankName.trim() : '', status: 'pending', date: new Date().toISOString() });

@@ -10,8 +10,8 @@ const Support = () => {
   ];
 
   const faqs = [
-    { q: 'How long does deposit approval take?', a: 'Deposits are reviewed within 1–4 hours during business hours (10 AM – 9 PM).' },
-    { q: 'When are withdrawals processed?', a: 'Withdrawals are processed Monday–Friday, 10 AM – 9 PM. Please allow up to 24 hours.' },
+    { q: 'How long does deposit approval take?', a: 'Deposits are reviewed within 1–4 hours during business hours (10 AM – 12 AM).' },
+    { q: 'When are withdrawals processed?', a: 'Withdrawals are processed Monday–Friday, 10 AM – 1 PM. Please allow up to 24 hours.' },
     { q: 'My balance is wrong — what do I do?', a: 'Please contact support via email (cloudnovaofficial1@gmail.com) with your transaction ID and we will resolve it within 2 hours.' },
     { q: 'How do I earn with referrals?', a: 'You earn 6% on Level 1, 4% on Level 2, and 2% on Level 3 team deposits. Share your referral code from the Profile page.' },
   ];
@@ -24,7 +24,7 @@ const Support = () => {
         <button onClick={() => navigate(-1)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '12px', fontWeight: '700', padding: '6px 14px', cursor: 'pointer', marginBottom: '12px' }}>← Back</button>
         <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>Customer Support</p>
         <h2 style={{ fontSize: '22px', fontWeight: '900', margin: '4px 0 0' }}>🎧 We're Here to Help</h2>
-        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)', margin: '6px 0 0', fontWeight: '500' }}>Available daily 10:00 AM – 9:00 PM</p>
+        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)', margin: '6px 0 0', fontWeight: '500' }}>Available daily 10:00 AM – 12:00 AM</p>
       </div>
 
       {/* Contact Channels */}
